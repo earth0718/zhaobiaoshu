@@ -44,7 +44,8 @@ const ui = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('nav-parser').addEventListener('click', () => ui.showSection('parser-section'));
     document.getElementById('nav-tender').addEventListener('click', () => ui.showSection('tender-section'));
+    document.getElementById('nav-parser').addEventListener('click', () => ui.showSection('parser-section'));
+    document.getElementById('nav-filter').addEventListener('click', () => ui.showSection('filter-section'));
     document.getElementById('nav-history').addEventListener('click', () => ui.showSection('history-section'));
 });

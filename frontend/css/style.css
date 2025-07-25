@@ -221,6 +221,270 @@ input[type="checkbox"] {
     border: 1px solid #2ecc71;
 }
 
+/* 下载界面样式 */
+.download-container {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.success-message {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 5px;
+    color: #155724;
+}
+
+.success-message .icon-success {
+    font-size: 18px;
+    margin-right: 8px;
+    color: #28a745;
+}
+
+.download-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    border: 1px solid #e9ecef;
+}
+
+.download-info p {
+    margin: 5px 0;
+    color: #495057;
+}
+
+.download-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.btn-download {
+    background: #28a745;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-download:hover {
+    background: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.btn-preview {
+    background: #6c757d;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.btn-preview:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+}
+
+.icon-download, .icon-preview {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.preview-area {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 5px;
+    padding: 15px;
+    margin-top: 10px;
+}
+
+.preview-area h4 {
+    margin: 0 0 10px 0;
+    color: #495057;
+}
+
+.json-preview, .text-preview {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* 预览标签页样式 */
+.preview-tabs {
+    display: flex;
+    border-bottom: 2px solid #e9ecef;
+    margin-bottom: 15px;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    color: #6c757d;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+    margin-right: 5px;
+}
+
+.tab-btn:hover {
+    color: #495057;
+    background: #f8f9fa;
+}
+
+.tab-btn.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+    background: #fff;
+}
+
+.tab-content {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 过滤器组件样式 */
+.filter-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.filter-info {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.filter-info h3 {
+    margin: 0 0 15px 0;
+    color: #495057;
+    font-size: 18px;
+}
+
+.filter-info ul {
+    margin: 0;
+    padding-left: 20px;
+    color: #6c757d;
+}
+
+.filter-info li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.upload-area {
+    background: #ffffff;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+    border-color: #007bff;
+    background: #f8f9fa;
+}
+
+.upload-area label {
+    display: block;
+    margin-bottom: 15px;
+    font-weight: bold;
+    color: #495057;
+    font-size: 16px;
+}
+
+.upload-area input[type="file"] {
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background: #fff;
+    width: 100%;
+    max-width: 400px;
+}
+
+.upload-area .help-text {
+    color: #6c757d;
+    font-size: 14px;
+    font-style: italic;
+}
+
+.filter-stats {
+    background: #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.filter-stats h4 {
+    margin: 0 0 15px 0;
+    color: #495057;
+    font-size: 16px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #fff;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.stat-label {
+    font-weight: bold;
+    color: #495057;
+}
+
+.stat-value {
+    color: #6c757d;
+    font-family: monospace;
+}
+
 footer {
     text-align: center;
     margin-top: 20px;

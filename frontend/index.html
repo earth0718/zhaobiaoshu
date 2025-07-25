@@ -13,20 +13,26 @@
         </header>
 
         <nav>
-            <button id="nav-parser" class="active">文档解析</button>
-            <button id="nav-tender">招标文件生成</button>
+            <button id="nav-tender" class="active">招标文件生成</button>
+            <button id="nav-parser">文档解析</button>
+            <button id="nav-filter">过滤器</button>
             <button id="nav-history">历史记录</button>
         </nav>
 
         <main>
-            <div id="parser-section" class="content-section active">
+            <div id="tender-section" class="content-section active">
+                <h2>招标文件生成</h2>
+                <!-- 招标文件生成组件将在这里渲染 -->
+            </div>
+
+            <div id="parser-section" class="content-section">
                 <h2>文档解析</h2>
                 <!-- 文档解析组件将在这里渲染 -->
             </div>
 
-            <div id="tender-section" class="content-section">
-                <h2>招标文件生成</h2>
-                <!-- 招标文件生成组件将在这里渲染 -->
+            <div id="filter-section" class="content-section">
+                <h2>过滤器</h2>
+                <!-- 过滤器组件将在这里渲染 -->
             </div>
 
             <div id="history-section" class="content-section">
@@ -44,6 +50,7 @@
     <script src="js/ui.js"></script>
     <script src="js/components/DocumentParser.js"></script>
     <script src="js/components/TenderGenerator.js"></script>
+    <script src="js/components/FilterProcessor.js"></script>
     <script src="js/components/HistoryViewer.js"></script>
     <script src="js/main.js"></script>
 </body>

@@ -90,5 +90,24 @@ const api = {
             throw new Error('导出失败');
         }
         return response.blob();
+    },
+
+    /**
+     * 过滤JSON数据
+     * @param {Object} jsonData 需要过滤的JSON数据
+     */
+    async filterJSON(jsonData) {
+        const response = await fetch(`${API_BASE_URL}/api/filter/process`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(jsonData),
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: 'JSON过滤失败' }));
+            throw new Error(errorData.detail);
+        }
+        return response.json();
     }
 };

@@ -25,6 +25,9 @@ from src.tender_generation_core.api import router as tender_router
 # 导入历史记录API
 from src.history.api import router as history_router
 
+# 导入过滤器API
+from src.api.filter import router as filter_router
+
 # 配置日志 - 只输出到控制台
 logging.basicConfig(
     level=logging.INFO,
@@ -97,6 +100,7 @@ app.include_router(document_router, prefix="/api/parser", tags=["文档解析"])
 app.include_router(config_router, prefix="/api/config", tags=["配置管理"])
 app.include_router(tender_router, prefix="/api/tender", tags=["招标文件生成"])
 app.include_router(history_router, prefix="/api/history", tags=["历史记录"])
+app.include_router(filter_router, tags=["过滤器"])
 
 # 挂载静态文件服务（前端界面）
 frontend_path = os.path.join(os.path.dirname(__file__), "frontend")

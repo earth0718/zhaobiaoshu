@@ -58,12 +58,59 @@ class DocumentParser {
         try {
             const result = await api.parseDocument(formData, params);
             if (result.success) {
-                ui.renderJSON(resultArea, result.data);
+                this.createDownloadLink(resultArea, result.data, file.name);
             } else {
                 ui.showMessage(resultArea, `解析失败: ${result.error || result.message}`, 'error');
             }
         } catch (error) {
             ui.showMessage(resultArea, `请求失败: ${error.message}`, 'error');
         }
+    }
+
+    createDownloadLink(resultArea, data, originalFileName) {
+        // 创建JSON文件内容
+        const jsonContent = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonContent], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        // 生成下载文件名
+        const baseName = originalFileName.replace(/\.[^/.]+$/, ""); // 移除原文件扩展名
+        const downloadFileName = `${baseName}_解析结果.json`;
+        
+        // 创建下载链接HTML
+        const downloadHtml = `
+            <div class="download-container">
+                <div class="success-message">
+                    <i class="icon-success">✓</i>
+                    <span>文档解析完成！</span>
+                </div>
+                <div class="download-info">
+                    <p><strong>原文件：</strong>${originalFileName}</p>
+                    <p><strong>解析时间：</strong>${new Date().toLocaleString()}</p>
+                    <p><strong>文件大小：</strong>${(blob.size / 1024).toFixed(2)} KB</p>
+                </div>
+                <div class="download-actions">
+                    <a href="${url}" download="${downloadFileName}" class="btn-download">
+                        <i class="icon-download">⬇</i>
+                        下载解析结果 (JSON)
+                    </a>
+                    <button class="btn-preview" onclick="this.parentElement.parentElement.querySelector('.preview-area').style.display = this.parentElement.parentElement.querySelector('.preview-area').style.display === 'none' ? 'block' : 'none'">
+                        <i class="icon-preview">👁</i>
+                        预览内容
+                    </button>
+                </div>
+                <div class="preview-area" style="display: none;">
+                    <h4>内容预览：</h4>
+                    <pre class="json-preview">${jsonContent.substring(0, 1000)}${jsonContent.length > 1000 ? '\n\n... (内容过长，请下载完整文件查看)' : ''}</pre>
+                </div>
+            </div>
+        `;
+        
+        resultArea.innerHTML = downloadHtml;
+        
+        // 自动清理URL对象（可选，避免内存泄漏）
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+        }, 60000); // 1分钟后清理
     }
 }
