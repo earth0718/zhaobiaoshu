@@ -1,0 +1,34 @@
+[
+  {
+    "record_id": "3f2de6b0-06f1-422f-83cf-952fd89f64a8",
+    "task_id": "d4cc6de1-19e5-4e1a-a77d-3783eea0d736",
+    "original_filename": "05054e03-5773-43b4-b042-b13534166c77.docx",
+    "file_size": 38252,
+    "model_provider": "ollama",
+    "quality_level": "standard",
+    "generation_time": "2025-07-24T16:31:18.414908",
+    "processing_duration": 2085.620323,
+    "status": "completed",
+    "error_message": null,
+    "tender_content": "",
+    "tender_summary": "# 招标书\n\n(基于文件 05054e03-5773-43b4-b042-b13534166c77.docx 生成)\n\n## 第一章 采购公告\n\n**第一章 采购公告**\n\n#### 武汉市光谷科创中心一期工程预制构件招标公告\n\n**一、项目概况与招标范围**\n1. **项目名称**: 武汉市光谷科创中心一期工程预制构件采购。\n2. **招标编号**: WHGKZB-2025-003。\n3. **...",
+    "created_at": "2025-07-24T16:31:18.414908",
+    "file_path": "src\\history\\content\\3f2de6b0-06f1-422f-83cf-952fd89f64a8.txt"
+  },
+  {
+    "record_id": "test-record-001",
+    "task_id": "task-test-001",
+    "original_filename": "测试招标文档.docx",
+    "file_size": 1024000,
+    "model_provider": "ollama",
+    "quality_level": "standard",
+    "generation_time": "2025-01-24T12:00:00",
+    "processing_duration": 15.5,
+    "status": "completed",
+    "error_message": null,
+    "tender_content": "这是一个测试招标书内容...",
+    "tender_summary": "测试招标书摘要",
+    "created_at": "2025-01-24T12:00:00",
+    "file_path": "src/history/content/test-record-001.txt"
+  }
+]

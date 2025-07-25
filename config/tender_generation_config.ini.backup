@@ -1,0 +1,57 @@
+[Upload]
+Folder = uploads/tender_generation
+
+[Provider]
+# 可选项: 'ollama' 或 'deepseek'
+Active = ollama
+
+[Ollama]
+Host = http://localhost:11434
+Model = qwen2.5:7b
+# 优化参数以提升生成速度
+Temperature = 0.7
+Top_p = 0.9
+Max_tokens = 2048
+Stream = true
+
+[DeepSeek]
+# 请在这里填入你的 DeepSeek API Key
+APIKey = sk-6e4ad3c342544b72b3f6720a7e283b68
+Model = deepseek-chat
+
+[TextChunking]
+# 文本分块配置 - 针对ollama优化，减少分块数量
+ChunkSize = 4000
+ChunkOverlap = 100
+# 分隔符优先级：段落、句子、单词、字符
+Separators = \n\n,\n,。,！,？,.
+
+[ModelSettings]
+# 默认使用的模型提供商
+DefaultProvider = ollama
+
+# 模型调用超时时间（秒） - ollama本地模型，增加超时时间
+Timeout = 60
+
+# 最大重试次数
+MaxRetries = 3
+
+[DocumentProcessing]
+# 支持的文档格式
+SupportedFormats = pdf,docx,txt
+
+# 最大文档大小（MB）
+MaxDocumentSize = 50
+
+# 并行处理的最大线程数 - ollama本地处理，适度并行避免资源竞争
+MaxThreads = 4
+
+[TenderGeneration]
+# 招标书章节列表
+Sections = 第一章 采购公告,第二章 供应商须知,第三章 评审办法,第四章 合同条款及格式,第五章 采购人要求,第六章 响应文件格式
+
+# 生成质量级别 (basic, standard, premium)
+QualityLevel = standard
+
+# 是否包含详细说明
+IncludeDetailedDescription = true
