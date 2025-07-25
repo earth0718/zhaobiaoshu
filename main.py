@@ -93,10 +93,10 @@ async def global_exception_handler(request, exc):
 
 
 # 注册路由
-app.include_router(document_router)
-app.include_router(config_router)
-app.include_router(tender_router)
-app.include_router(history_router)
+app.include_router(document_router, prefix="/api/parser", tags=["文档解析"])
+app.include_router(config_router, prefix="/api/config", tags=["配置管理"])
+app.include_router(tender_router, prefix="/api/tender", tags=["招标文件生成"])
+app.include_router(history_router, prefix="/api/history", tags=["历史记录"])
 
 # 挂载静态文件服务（前端界面）
 frontend_path = os.path.join(os.path.dirname(__file__), "frontend")
@@ -135,16 +135,16 @@ async def api_info():
                 "redoc": "/redoc"
             },
             "endpoints": {
-                "parse_document": "/api/v1/document/parse",
-                "batch_parse": "/api/v1/document/parse/batch",
-                "extract_text": "/api/v1/document/extract/text",
-                "extract_structured": "/api/v1/document/extract/structured",
-                "supported_formats": "/api/v1/document/formats",
-                "health_check": "/api/v1/document/health",
-                "generate_tender": "/api/v1/tender/generate",
-                "tender_status": "/api/v1/tender/status/{task_id}",
-                "tender_models": "/api/v1/tender/models",
-                "tender_health": "/api/v1/tender/health",
+                "parse_document": "/api/parser/parse",
+                "batch_parse": "/api/parser/parse/batch",
+                "extract_text": "/api/parser/extract/text",
+                "extract_structured": "/api/parser/extract/structured",
+                "supported_formats": "/api/parser/formats",
+                "health_check": "/api/parser/health",
+                "generate_tender": "/api/tender/generate",
+                "tender_status": "/api/tender/status/{task_id}",
+                "tender_models": "/api/tender/models",
+                "tender_health": "/api/tender/health",
                 "history_records": "/api/history/records",
                 "history_statistics": "/api/history/statistics",
                 "history_export": "/api/history/export/{record_id}"
@@ -202,7 +202,7 @@ async def system_info():
             "api_info": {
                 "framework": "FastAPI",
                 "documentation": "/docs",
-                "base_url": "/api/v1/document"
+                "base_url": "/api/parser"
             }
         }
     except Exception as e:

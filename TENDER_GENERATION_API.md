@@ -1,13 +1,13 @@
-# 招标书生成API接口文档
+# 招标文件生成API接口文档
 
 ## 概述
 
-招标书生成系统现已集成到现有的文档解析系统中，提供完整的从文档解析到招标书生成的端到端服务。
+招标文件生成系统现已集成到现有的文档解析系统中，提供完整的从文档解析到招标文件生成的端到端服务。
 
 ## 服务状态
 
-- **后端服务地址**: http://localhost:8001
-- **API文档**: http://localhost:8001/docs
+- **后端服务地址**: http://localhost:8082
+- **API文档**: http://localhost:8082/docs
 - **前端界面**: http://localhost:3000
 
 ## 核心功能模块
@@ -27,7 +27,7 @@
 
 ### 2. 招标生成核心模块 (`src/tender_generation_core/`)
 
-**功能**: 实现招标书生成的完整流程
+**功能**: 实现招标文件生成的完整流程
 
 **主要组件**:
 - `processor.py`: 核心处理器，实现Map-Reduce文档处理流程
@@ -37,15 +37,15 @@
 
 ## API接口详情
 
-### 1. 招标书生成接口
+### 1. 招标文件生成接口
 
-**POST** `/api/v1/tender/generate`
+**POST** `/api/tender/generate`
 
 **功能**: 上传文档并生成招标书
 
 **请求参数**:
 ```bash
-curl -X POST "http://localhost:8001/api/v1/tender/generate" \
+curl -X POST "http://localhost:8082/api/tender/generate" \
   -H "Content-Type: multipart/form-data" \
   -F "file=@your_document.pdf" \
   -F "model_provider=ollama" \
@@ -62,19 +62,19 @@ curl -X POST "http://localhost:8001/api/v1/tender/generate" \
 {
   "task_id": "123e4567-e89b-12d3-a456-426614174000",
   "message": "任务已创建，正在处理中...",
-  "status_url": "/api/v1/tender/status/123e4567-e89b-12d3-a456-426614174000"
+  "status_url": "/api/tender/status/123e4567-e89b-12d3-a456-426614174000"
 }
 ```
 
 ### 2. 任务状态查询接口
 
-**GET** `/api/v1/tender/status/{task_id}`
+**GET** `/api/tender/status/{task_id}`
 
-**功能**: 查询招标书生成任务的状态
+**功能**: 查询招标文件生成任务的状态
 
 **请求示例**:
 ```bash
-curl "http://localhost:8001/api/v1/tender/status/123e4567-e89b-12d3-a456-426614174000"
+curl "http://localhost:8082/api/tender/status/123e4567-e89b-12d3-a456-426614174000"
 ```
 
 **响应示例**:
@@ -83,7 +83,7 @@ curl "http://localhost:8001/api/v1/tender/status/123e4567-e89b-12d3-a456-4266141
   "task_id": "123e4567-e89b-12d3-a456-426614174000",
   "status": "completed",
   "progress": 100,
-  "message": "招标书生成完成",
+  "message": "招标文件生成完成",
   "result": {
     "tender_document": "# 招标书\n\n## 第一章 采购公告\n...",
     "file_size": 15420,
@@ -102,22 +102,22 @@ curl "http://localhost:8001/api/v1/tender/status/123e4567-e89b-12d3-a456-4266141
 
 ### 3. 模型管理接口
 
-**GET** `/api/v1/tender/models`
+**GET** `/api/tender/models`
 
 **功能**: 获取可用的模型列表和状态
 
 **请求示例**:
 ```bash
-curl "http://localhost:8001/api/v1/tender/models"
+curl "http://localhost:8082/api/tender/models"
 ```
 
-**POST** `/api/v1/tender/models/switch`
+**POST** `/api/tender/models/switch`
 
 **功能**: 切换当前使用的模型
 
 **请求示例**:
 ```bash
-curl -X POST "http://localhost:8001/api/v1/tender/models/switch" \
+curl -X POST "http://localhost:8082/api/tender/models/switch" \
   -H "Content-Type: application/json" \
   -d '{
     "module_name": "tender_generation",
@@ -127,22 +127,22 @@ curl -X POST "http://localhost:8001/api/v1/tender/models/switch" \
 
 ### 4. 健康检查接口
 
-**GET** `/api/v1/tender/health`
+**GET** `/api/tender/health`
 
 **功能**: 检查招标生成服务的健康状态
 
 **请求示例**:
 ```bash
-curl "http://localhost:8001/api/v1/tender/health"
+curl "http://localhost:8082/api/tender/health"
 ```
 
 ### 5. 任务管理接口
 
-**GET** `/api/v1/tender/tasks`
+**GET** `/api/tender/tasks`
 
 **功能**: 获取所有任务列表
 
-**DELETE** `/api/v1/tender/tasks/{task_id}`
+**DELETE** `/api/tender/tasks/{task_id}`
 
 **功能**: 删除指定任务
 
@@ -200,24 +200,24 @@ QualityLevel = standard
 
 1. **检查服务状态**:
    ```bash
-   curl "http://localhost:8001/api/v1/tender/health"
+   curl "http://localhost:8082/api/tender/health"
    ```
 
 2. **查看可用模型**:
    ```bash
-   curl "http://localhost:8001/api/v1/tender/models"
+   curl "http://localhost:8082/api/tender/models"
    ```
 
 3. **上传文档生成招标书**:
    ```bash
-   curl -X POST "http://localhost:8001/api/v1/tender/generate" \
+   curl -X POST "http://localhost:8082/api/tender/generate" \
      -F "file=@test_document.pdf" \
      -F "model_provider=ollama"
    ```
 
 4. **查询任务状态**:
    ```bash
-   curl "http://localhost:8001/api/v1/tender/status/{返回的task_id}"
+   curl "http://localhost:8082/api/tender/status/{返回的task_id}"
    ```
 
 ### 2. 前端界面测试
@@ -227,13 +227,13 @@ QualityLevel = standard
 1. 上传PDF或DOCX文档
 2. 选择解析类型
 3. 查看解析结果
-4. 使用新增的招标书生成功能（如果前端已集成）
+4. 使用新增的招标文件生成功能（如果前端已集成）
 
 ### 3. API文档测试
 
-访问 http://localhost:8001/docs，使用Swagger UI进行交互式测试：
+访问 http://localhost:8082/docs，使用Swagger UI进行交互式测试：
 
-1. 展开招标书生成相关的API接口
+1. 展开招标文件生成相关的API接口
 2. 使用"Try it out"功能测试各个接口
 3. 查看请求和响应的详细信息
 
@@ -318,6 +318,6 @@ pip install requests
 
 ### 集成到前端界面
 
-1. 在前端添加招标书生成功能模块
+1. 在前端添加招标文件生成功能模块
 2. 实现文件上传和进度显示
 3. 添加结果展示和下载功能

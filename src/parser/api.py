@@ -24,7 +24,7 @@ class ParseConfig(BaseModel):
 logger = logging.getLogger(__name__)
 
 # 创建路由器
-router = APIRouter(prefix="/api/v1/document", tags=["文档解析"])
+router = APIRouter()
 
 
 # Pydantic模型定义

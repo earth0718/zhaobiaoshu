@@ -197,7 +197,7 @@ def main():
     # 输出优化建议
     optimizer.optimize_system_settings()
     
-    print("\n✨ 优化完成! 现在可以重启招标书生成服务以获得更好的性能。")
+    print("\n✨ 优化完成! 现在可以重启招标文件生成服务以获得更好的性能。")
 
 if __name__ == "__main__":
     main()

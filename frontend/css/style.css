@@ -1,0 +1,231 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f7f9;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 20px auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+header {
+    background: #2c3e50;
+    color: white;
+    padding: 1rem 0;
+    text-align: center;
+    border-radius: 8px 8px 0 0;
+}
+
+header h1 {
+    margin: 0;
+}
+
+nav {
+    display: flex;
+    justify-content: center;
+    background: #34495e;
+    padding: 0.5rem;
+}
+
+nav button {
+    background: none;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 16px;
+    color: #ecf0f1;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+nav button:hover {
+    background-color: #4e6d8c;
+}
+
+nav button.active {
+    color: #fff;
+    border-bottom-color: #3498db;
+}
+
+.content-section {
+    display: none;
+    padding: 20px;
+}
+
+.content-section.active {
+    display: block;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #555;
+}
+
+input[type="file"], select, input[type="number"], input[type="checkbox"] {
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    margin-right: 10px;
+}
+
+input[type="checkbox"] {
+    width: auto;
+}
+
+.btn-primary, .btn-secondary, .btn-danger {
+    cursor: pointer;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 16px;
+    transition: background-color 0.3s, transform 0.2s;
+    margin-right: 10px;
+}
+
+.btn-primary:hover, .btn-secondary:hover, .btn-danger:hover {
+    transform: translateY(-2px);
+}
+
+.btn-primary {
+    background-color: #3498db;
+}
+.btn-primary:hover {
+    background-color: #2980b9;
+}
+
+.btn-secondary {
+    background-color: #95a5a6;
+}
+.btn-secondary:hover {
+    background-color: #7f8c8d;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+}
+.btn-danger:hover {
+    background-color: #c0392b;
+}
+
+.result-area, .history-list {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #ecf0f1;
+    border: 1px solid #bdc3c7;
+    border-radius: 5px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.history-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.history-record {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.history-record p {
+    margin: 0 0 10px 0;
+}
+
+.record-actions {
+    margin-top: 10px;
+}
+
+.details-view {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.status-indicator {
+    padding: 5px 10px;
+    border-radius: 15px;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.status-healthy {
+    background-color: #2ecc71;
+}
+
+.status-unhealthy {
+    background-color: #e74c3c;
+}
+
+.status-completed, .status-success {
+    color: #27ae60;
+    font-weight: bold;
+}
+
+.status-failed, .status-error {
+    color: #c0392b;
+    font-weight: bold;
+}
+
+.status-processing, .status-running {
+    color: #2980b9;
+    font-weight: bold;
+}
+
+.error, .info, .success {
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.error {
+    background-color: #fbeae5;
+    color: #c0392b;
+    border: 1px solid #e74c3c;
+}
+
+.info {
+    background-color: #eaf2f8;
+    color: #2980b9;
+    border: 1px solid #3498db;
+}
+
+.success {
+    background-color: #eafaf1;
+    color: #27ae60;
+    border: 1px solid #2ecc71;
+}
+
+footer {
+    text-align: center;
+    margin-top: 20px;
+    padding: 20px;
+    background: #2c3e50;
+    color: #ecf0f1;
+    border-radius: 0 0 8px 8px;
+}

@@ -8,7 +8,7 @@
       ]
     },
     "tender_generation": {
-      "current": "ollama",
+      "current": "deepseek",
       "options": [
         "ollama",
         "deepseek"

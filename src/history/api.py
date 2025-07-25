@@ -9,7 +9,7 @@ from typing import Optional
 from .history_manager import history_manager
 from .models import HistoryQueryParams, HistoryListResponse, HistoryStatsResponse, TenderHistoryRecord
 
-router = APIRouter(prefix="/api/history", tags=["历史记录"])
+router = APIRouter()
 
 @router.get("/records", response_model=HistoryListResponse, summary="获取历史记录列表")
 async def get_history_records(
@@ -21,7 +21,7 @@ async def get_history_records(
     date_to: Optional[str] = Query(None, description="结束日期 (ISO格式)")
 ):
     """
-    获取招标书生成历史记录列表
+    获取招标文件生成历史记录列表
     
     支持分页和多种过滤条件：
     - 按状态过滤（成功/失败）

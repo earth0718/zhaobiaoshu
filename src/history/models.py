@@ -9,7 +9,7 @@ from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
 
 class TenderHistoryRecord(BaseModel):
-    """招标书生成历史记录模型"""
+    """招标文件生成历史记录模型"""
     record_id: str
     task_id: str
     original_filename: str

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-招标书生成核心处理模块
+招标文件生成核心处理模块
 
 功能说明：
-- 实现招标书生成的完整流程，包括文档解析、文本分块、内容总结和招标书章节生成
+- 实现招标文件生成的完整流程，包括文档解析、文本分块、内容总结和招标文件章节生成
 - 采用Map-Reduce模式对大文档进行并行处理和总结
 - 集成统一的模型管理器，支持多种大语言模型调用
 - 提供从原始文档到完整招标书的端到端转换能力
@@ -30,7 +30,7 @@ except Exception as e:
     raise
 
 # 使用统一的模型管理器
-print(f"招标书生成模块使用模型管理器，当前模型: {model_manager.get_current_model('tender_generation')}")
+print(f"招标文件生成模块使用模型管理器，当前模型: {model_manager.get_current_model('tender_generation')}")
 
 def get_llm_response(prompt):
     """获取大模型响应"""
@@ -106,5 +106,5 @@ def process_document(filepath):
         section_content = generate_tender_section(overall_summary, section_title)
         final_document += f"## {section_title}\n\n{section_content}\n\n---\n\n"
         
-    print("6. 招标书生成完毕！")
+    print("6. 招标文件生成完毕！")
     return final_document

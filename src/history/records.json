@@ -1,5 +1,21 @@
 [
   {
+    "record_id": "1e6179a3-ae3c-4010-bea9-a30b5699690a",
+    "task_id": "9e982bb5-aa19-4c06-9846-4b6763cf98d8",
+    "original_filename": "e14ac556-4dd2-4f7e-96bd-fb70c3237fd6.docx",
+    "file_size": 38252,
+    "model_provider": "ollama",
+    "quality_level": "standard",
+    "generation_time": "2025-07-25T14:07:37.872846",
+    "processing_duration": 21.865128,
+    "status": "completed",
+    "error_message": null,
+    "tender_content": "# 招标书\n\n(基于文件 e14ac556-4dd2-4f7e-96bd-fb70c3237fd6.docx 生成)\n\n## 第一章 采购公告\n\nNone\n\n---\n\n## 第二章 供应商须知\n\nNone\n\n---\n\n## 第三章 评审办法\n\nNone\n\n---\n\n## 第四章 合同条款及格式\n\nNone\n\n---\n\n## 第五章 采购人要求\n\nNone\n\n---\n\n## 第六章 响应文件格式\n\nNone\n\n---\n\n",
+    "tender_summary": "# 招标书\n\n(基于文件 e14ac556-4dd2-4f7e-96bd-fb70c3237fd6.docx 生成)\n\n## 第一章 采购公告\n\nNone\n\n---\n\n## 第二章 供应商须知\n\nNone\n\n---\n\n## 第三章 评审办法\n\nNone\n\n---\n\n## 第四章 合同条款及格式\n\nNone\n\n---\n\n## 第五章 采购人要求\n\nNone\n\n---\n\n## 第六章 响应文件格式\n\n...",
+    "created_at": "2025-07-25T14:07:37.872846",
+    "file_path": "src\\history\\content\\1e6179a3-ae3c-4010-bea9-a30b5699690a.txt"
+  },
+  {
     "record_id": "3f2de6b0-06f1-422f-83cf-952fd89f64a8",
     "task_id": "d4cc6de1-19e5-4e1a-a77d-3783eea0d736",
     "original_filename": "05054e03-5773-43b4-b042-b13534166c77.docx",

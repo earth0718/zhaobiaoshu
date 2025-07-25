@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-招标书生成历史记录管理器
+招标文件生成历史记录管理器
 """
 
 import os
@@ -13,7 +13,7 @@ from pathlib import Path
 from .models import TenderHistoryRecord, HistoryQueryParams, HistoryListResponse, HistoryStatsResponse
 
 class HistoryManager:
-    """招标书生成历史记录管理器"""
+    """招标文件生成历史记录管理器"""
     
     def __init__(self, history_dir: str = "src/history", max_records: int = 20):
         self.history_dir = Path(history_dir)

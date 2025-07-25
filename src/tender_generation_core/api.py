@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-招标书生成API接口模块
+招标文件生成API接口模块
 
-提供招标书生成相关的REST API接口，包括：
-1. 单文档招标书生成
+提供招标文件生成相关的REST API接口，包括：
+1. 单文档招标文件生成
 2. 批量文档处理
 3. 生成状态查询
 4. 模型配置管理
@@ -29,17 +29,14 @@ from ..history.history_manager import history_manager
 logger = logging.getLogger(__name__)
 
 # 创建路由器
-router = APIRouter(
-    prefix="/api/v1/tender",
-    tags=["招标书生成"]
-)
+router = APIRouter()
 
 # 全局任务状态存储（生产环境建议使用Redis等持久化存储）
 task_status = {}
 
 # 请求模型
 class TenderGenerationRequest(BaseModel):
-    """招标书生成请求模型"""
+    """招标文件生成请求模型"""
     model_provider: Optional[str] = "ollama"
     quality_level: Optional[str] = "standard"
     include_sections: Optional[List[str]] = None
@@ -131,7 +128,7 @@ async def process_document_async(task_id: str, file_path: str, config: Dict[str,
             os.remove(file_path)
         
         # 完成任务
-        update_task_status(task_id, "completed", 100, "招标书生成完成", {
+        update_task_status(task_id, "completed", 100, "招标文件生成完成", {
             "tender_document": result,
             "file_size": len(result),
             "generation_time": datetime.now().isoformat(),
@@ -222,7 +219,7 @@ async def generate_tender_document(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"创建招标书生成任务失败: {str(e)}", exc_info=True)
+        logger.error(f"创建招标文件生成任务失败: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"创建任务失败: {str(e)}")
 
 @router.get("/status/{task_id}", response_model=TaskStatusResponse, summary="查询任务状态")
