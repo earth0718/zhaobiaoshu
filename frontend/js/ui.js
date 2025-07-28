@@ -8,7 +8,11 @@ const ui = {
         document.querySelectorAll('nav button').forEach(button => {
             button.classList.remove('active');
         });
-        document.getElementById(`nav-${sectionId.split('-')[0]}`).classList.add('active');
+        const buttonId = `nav-${sectionId.replace('-section', '')}`;
+        const buttonElement = document.getElementById(buttonId);
+        if (buttonElement) {
+            buttonElement.classList.add('active');
+        }
     },
 
     updateSystemStatus: (status) => {
@@ -47,5 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('nav-tender').addEventListener('click', () => ui.showSection('tender-section'));
     document.getElementById('nav-parser').addEventListener('click', () => ui.showSection('parser-section'));
     document.getElementById('nav-filter').addEventListener('click', () => ui.showSection('filter-section'));
+    document.getElementById('nav-gender-book').addEventListener('click', () => ui.showSection('gender-book-section'));
     document.getElementById('nav-history').addEventListener('click', () => ui.showSection('history-section'));
 });

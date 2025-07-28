@@ -1,0 +1,35 @@
+{
+  "_comment": "前端配置文件示例 - 复制此文件为 frontend_config.json 并根据需要修改",
+  "api": {
+    "base_url": "http://localhost:8000",
+    "_comment_base_url": "API服务器地址，如果部署在其他端口或域名，请修改此值",
+    "timeout_ms": 60000,
+    "_comment_timeout_ms": "API请求超时时间（毫秒），默认60秒",
+    "retry_attempts": 3,
+    "_comment_retry_attempts": "API请求失败重试次数"
+  },
+  "ui": {
+    "status_polling_interval_ms": 3000,
+    "_comment_status_polling_interval_ms": "任务状态轮询间隔（毫秒），默认3秒",
+    "auto_cleanup_blob_urls_ms": 60000,
+    "_comment_auto_cleanup_blob_urls_ms": "自动清理下载链接的时间（毫秒），默认60秒",
+    "max_file_size_mb": 50,
+    "_comment_max_file_size_mb": "最大文件上传大小（MB）"
+  },
+  "download": {
+    "default_filename_prefix": "投标书",
+    "_comment_default_filename_prefix": "下载文件的默认前缀名称",
+    "supported_formats": ["word", "markdown"],
+    "_comment_supported_formats": "支持的下载格式列表",
+    "fallback_format": "txt",
+    "_comment_fallback_format": "当其他格式不可用时的后备格式"
+  },
+  "generation": {
+    "default_model_provider": "deepseek",
+    "_comment_default_model_provider": "默认的AI模型提供商，可选值: deepseek, ollama",
+    "enable_optimization_default": true,
+    "_comment_enable_optimization_default": "默认是否启用智能优化",
+    "include_analysis_default": true,
+    "_comment_include_analysis_default": "默认是否包含章节分析"
+  }
+}

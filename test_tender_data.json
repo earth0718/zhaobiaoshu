@@ -1,0 +1,64 @@
+{
+  "project_info": {
+    "name": "智慧城市建设项目",
+    "budget": "5000万元",
+    "duration": "24个月",
+    "location": "北京市海淀区"
+  },
+  "requirements": {
+    "technical_requirements": [
+      "采用云原生架构设计",
+      "支持微服务部署",
+      "具备高可用性和容灾能力",
+      "支持大数据分析和AI算法"
+    ],
+    "business_requirements": [
+      "提供完整的系统集成方案",
+      "包含用户培训和技术支持",
+      "提供3年质保服务",
+      "支持7x24小时运维服务"
+    ]
+  },
+  "evaluation_criteria": {
+    "technical_score": 60,
+    "commercial_score": 25,
+    "qualification_score": 15
+  },
+  "submission_requirements": {
+    "deadline": "2024-02-15 17:00:00",
+    "format": "电子版PDF + 纸质版3份",
+    "contact": "张经理 010-12345678"
+  },
+  "content": [
+    {
+      "section": "项目概述",
+      "type": "Title",
+      "text": "智慧城市建设项目概述"
+    },
+    {
+      "section": "项目概述",
+      "type": "Content",
+      "text": "本项目旨在构建一个集成化的智慧城市管理平台，通过物联网、大数据、人工智能等先进技术，实现城市管理的数字化转型。项目将覆盖交通管理、环境监测、公共安全、民生服务等多个领域。"
+    },
+    {
+      "section": "技术方案",
+      "type": "Title",
+      "text": "技术实施方案"
+    },
+    {
+      "section": "技术方案",
+      "type": "Content",
+      "text": "采用微服务架构，基于Kubernetes容器编排平台，构建弹性可扩展的系统架构。数据层采用分布式数据库设计，支持海量数据存储和实时处理。"
+    },
+    {
+      "section": "项目管理",
+      "type": "Title",
+      "text": "项目实施计划"
+    },
+    {
+      "section": "项目管理",
+      "type": "Content",
+      "text": "项目分为需求分析、系统设计、开发实施、测试部署、运维支持五个阶段，总工期24个月。采用敏捷开发模式，确保项目按时交付。"
+    }
+  ]
+}

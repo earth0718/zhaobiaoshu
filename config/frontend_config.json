@@ -1,0 +1,22 @@
+{
+  "api": {
+    "base_url": "http://localhost:8000",
+    "timeout_ms": 60000,
+    "retry_attempts": 3
+  },
+  "ui": {
+    "status_polling_interval_ms": 3000,
+    "auto_cleanup_blob_urls_ms": 60000,
+    "max_file_size_mb": 50
+  },
+  "download": {
+    "default_filename_prefix": "投标书",
+    "supported_formats": ["word", "markdown"],
+    "fallback_format": "txt"
+  },
+  "generation": {
+    "default_model_provider": "deepseek",
+    "enable_optimization_default": true,
+    "include_analysis_default": true
+  }
+}

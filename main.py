@@ -27,6 +27,8 @@ from src.history.api import router as history_router
 
 # 导入过滤器API
 from src.api.filter import router as filter_router
+# 导入招标书生成API
+from src.gender_book.api import router as gender_book_router
 
 # 配置日志 - 只输出到控制台
 logging.basicConfig(
@@ -101,12 +103,19 @@ app.include_router(config_router, prefix="/api/config", tags=["配置管理"])
 app.include_router(tender_router, prefix="/api/tender", tags=["招标文件生成"])
 app.include_router(history_router, prefix="/api/history", tags=["历史记录"])
 app.include_router(filter_router, tags=["过滤器"])
+app.include_router(gender_book_router, tags=["招标书生成"])
 
 # 挂载静态文件服务（前端界面）
 frontend_path = os.path.join(os.path.dirname(__file__), "frontend")
 if os.path.exists(frontend_path):
     app.mount("/static", StaticFiles(directory=frontend_path), name="static")
     logger.info(f"前端静态文件已挂载: {frontend_path}")
+
+# 挂载配置文件服务
+config_path = os.path.join(os.path.dirname(__file__), "config")
+if os.path.exists(config_path):
+    app.mount("/config", StaticFiles(directory=config_path), name="config")
+    logger.info(f"配置文件已挂载: {config_path}")
 
 
 # 根路径 - 重定向到前端界面
@@ -221,7 +230,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8082,
+        port=8000,
         reload=False,
         log_level="info"
     )

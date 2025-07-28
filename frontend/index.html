@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>招标书文档解析与生成系统</title>
+    <title>投标书文档解析与生成系统</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>招标书文档解析与生成系统</h1>
+            <h1>投标书文档解析与生成系统</h1>
         </header>
 
         <nav>
             <button id="nav-tender" class="active">招标文件生成</button>
             <button id="nav-parser">文档解析</button>
             <button id="nav-filter">过滤器</button>
+            <button id="nav-gender-book">投标书生成</button>
             <button id="nav-history">历史记录</button>
         </nav>
 
@@ -35,6 +36,11 @@
                 <!-- 过滤器组件将在这里渲染 -->
             </div>
 
+            <div id="gender-book-section" class="content-section">
+                <h2>投标书生成</h2>
+                <!-- 投标书生成组件将在这里渲染 -->
+            </div>
+
             <div id="history-section" class="content-section">
                 <h2>操作历史</h2>
                 <!-- 历史记录组件将在这里渲染 -->
@@ -46,11 +52,13 @@
         </footer>
     </div>
 
+    <script src="js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/components/DocumentParser.js"></script>
     <script src="js/components/TenderGenerator.js"></script>
     <script src="js/components/FilterProcessor.js"></script>
+    <script src="js/components/GenderBookGenerator.js"></script>
     <script src="js/components/HistoryViewer.js"></script>
     <script src="js/main.js"></script>
 </body>

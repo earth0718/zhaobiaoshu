@@ -234,6 +234,25 @@ class ModelManager:
                         self.logger.warning("DeepSeek API Key未配置")
             except Exception as e:
                 self.logger.error(f"DeepSeek客户端初始化失败: {e}")
+        
+        # 初始化SiliconCloud客户端
+        if 'siliconcloud' in providers:
+            try:
+                if OpenAI is None:
+                    self.logger.warning("openai模块未安装，无法初始化SiliconCloud客户端")
+                else:
+                    siliconcloud_config = providers['siliconcloud']
+                    api_key = siliconcloud_config.get('api_key')
+                    if api_key and api_key != 'your_siliconcloud_api_key_here':
+                        self.clients['siliconcloud'] = OpenAI(
+                            api_key=api_key,
+                            base_url=siliconcloud_config.get('base_url', 'https://api.siliconflow.cn/v1')
+                        )
+                        self.logger.info("SiliconCloud客户端初始化成功")
+                    else:
+                        self.logger.warning("SiliconCloud API Key未配置")
+            except Exception as e:
+                self.logger.error(f"SiliconCloud客户端初始化失败: {e}")
     
     def get_current_model(self, module: str) -> str:
         """获取指定模块当前使用的模型"""
@@ -273,6 +292,8 @@ class ModelManager:
             return self._call_ollama(prompt, **kwargs)
         elif provider == 'deepseek':
             return self._call_deepseek(prompt, **kwargs)
+        elif provider == 'siliconcloud':
+            return self._call_siliconcloud(prompt, **kwargs)
         else:
             raise ValueError(f"不支持的模型提供商: {provider}")
     
@@ -312,6 +333,24 @@ class ModelManager:
             self.logger.error(f"DeepSeek调用失败: {e}")
             raise Exception(f"DeepSeek调用失败: {e}")
     
+    def _call_siliconcloud(self, prompt: str, **kwargs) -> str:
+        """调用SiliconCloud模型"""
+        try:
+            if 'siliconcloud' not in self.clients:
+                raise Exception("SiliconCloud客户端未初始化")
+            
+            client = self.clients['siliconcloud']
+            model_name = self.config['providers']['siliconcloud']['model']
+            
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[{'role': 'user', 'content': prompt}]
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            self.logger.error(f"SiliconCloud调用失败: {e}")
+            raise Exception(f"SiliconCloud调用失败: {e}")
+    
     def check_model_availability(self, provider: str) -> Dict[str, Any]:
         """检查模型可用性"""
         result = {
@@ -329,6 +368,8 @@ class ModelManager:
                 result.update(self._check_ollama_availability())
             elif provider == 'deepseek':
                 result.update(self._check_deepseek_availability())
+            elif provider == 'siliconcloud':
+                result.update(self._check_siliconcloud_availability())
             
             if result['available']:
                 result['response_time'] = round((time.time() - start_time) * 1000, 2)  # 毫秒
@@ -387,6 +428,27 @@ class ModelManager:
                 return {'available': False, 'message': 'DeepSeek API响应异常'}
         except Exception as e:
             return {'available': False, 'message': f'DeepSeek检查失败: {str(e)}'}
+    
+    def _check_siliconcloud_availability(self) -> Dict[str, Any]:
+        """检查SiliconCloud可用性"""
+        try:
+            if 'siliconcloud' not in self.clients:
+                return {'available': False, 'message': 'SiliconCloud客户端未初始化'}
+            
+            # 发送一个简单的测试请求
+            client = self.clients['siliconcloud']
+            response = client.chat.completions.create(
+                model=self.config['providers']['siliconcloud']['model'],
+                messages=[{'role': 'user', 'content': '测试'}],
+                max_tokens=10
+            )
+            
+            if response.choices and len(response.choices) > 0:
+                return {'available': True, 'message': 'SiliconCloud API正常'}
+            else:
+                return {'available': False, 'message': 'SiliconCloud API响应异常'}
+        except Exception as e:
+            return {'available': False, 'message': f'SiliconCloud检查失败: {str(e)}'}
     
     def get_model_info(self) -> Dict[str, Any]:
         """获取模型信息"""
