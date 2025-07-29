@@ -5,7 +5,7 @@ const api = {
      * 检查后端健康状态
      */
     async checkHealth() {
-        const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
         const response = await fetch(`${baseUrl}/health`);
         if (!response.ok) throw new Error('网络响应错误');
         return response.json();
@@ -17,7 +17,7 @@ const api = {
      * @param {URLSearchParams} params 查询参数
      */
     async parseDocument(formData, params) {
-        const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
         const response = await fetch(`${baseUrl}/api/parser/parse?${params.toString()}`, {
             method: 'POST',
             body: formData,
@@ -35,7 +35,7 @@ const api = {
      * @param {URLSearchParams} params 查询参数
      */
     async generateTender(formData, params) {
-        const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
         const response = await fetch(`${baseUrl}/api/tender/generate?${params.toString()}`, {
             method: 'POST',
             body: formData,
@@ -48,11 +48,47 @@ const api = {
     },
 
     /**
+     * 从文本生成招标书
+     * @param {string} textContent 文本内容
+     * @param {string} modelProvider 模型提供商
+     * @param {string} qualityLevel 生成质量
+     * @param {string} projectName 项目名称
+     * @param {string} customRequirements 自定义要求
+     */
+    async generateTenderFromText(textContent, modelProvider = 'ollama', qualityLevel = 'standard', projectName = '招标项目', customRequirements = '') {
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
+        const requestBody = {
+            text_content: textContent,
+            model_provider: modelProvider,
+            quality_level: qualityLevel,
+            project_name: projectName
+        };
+        
+        if (customRequirements) {
+            requestBody.custom_requirements = customRequirements;
+        }
+        
+        const response = await fetch(`${baseUrl}/api/tender/generate_from_text`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: '文本招标文件生成任务创建失败' }));
+            throw new Error(errorData.detail);
+        }
+        return response.json();
+    },
+
+    /**
      * 查询任务状态
      * @param {string} taskId 任务ID
      */
     async getTaskStatus(taskId) {
-        const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
         const response = await fetch(`${baseUrl}/api/tender/status/${taskId}`);
         if (!response.ok) throw new Error('获取任务状态失败');
         return response.json();
@@ -63,7 +99,7 @@ const api = {
      * @param {URLSearchParams} params 查询参数 (分页等)
      */
     async getHistory(params) {
-        const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
         const response = await fetch(`${baseUrl}/api/history/records?${params.toString()}`);
         if (!response.ok) throw new Error('获取历史记录失败');
         return response.json();
@@ -74,7 +110,7 @@ const api = {
      * @param {string} recordId 记录ID
      */
     async deleteHistoryRecord(recordId) {
-        const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
         const response = await fetch(`${baseUrl}/api/history/records/${recordId}`, {
             method: 'DELETE',
         });
@@ -91,7 +127,7 @@ const api = {
      * @returns {Promise<Blob>}
      */
     async exportHistoryRecord(recordId) {
-        const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
         const response = await fetch(`${baseUrl}/api/history/export/${recordId}`);
         if (!response.ok) {
             throw new Error('导出失败');
@@ -104,7 +140,7 @@ const api = {
      * @param {Object} jsonData 需要过滤的JSON数据
      */
     async filterJSON(jsonData) {
-        const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
         const response = await fetch(`${baseUrl}/api/filter/process`, {
             method: 'POST',
             headers: {
@@ -136,7 +172,7 @@ const api = {
             requestBody.model_name = modelName;
         }
         
-        const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
         const response = await fetch(`${baseUrl}/api/gender_book/generate_from_json`, {
             method: 'POST',
             headers: {
@@ -161,7 +197,7 @@ const api = {
         const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒超时
         
         try {
-            const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+            const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
             const response = await fetch(`${baseUrl}/api/gender_book/upload_json`, {
                 method: 'POST',
                 body: formData,
@@ -189,7 +225,7 @@ const api = {
      * @param {string} taskId 任务ID
      */
     async getBidProposalTaskStatus(taskId) {
-        const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
         const response = await fetch(`${baseUrl}/api/gender_book/status/${taskId}`);
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ detail: '获取任务状态失败' }));
@@ -202,7 +238,7 @@ const api = {
      * 获取所有投标书生成任务状态
      */
     async getAllBidProposalTasks() {
-        const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
         const response = await fetch(`${baseUrl}/api/gender_book/tasks`);
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ detail: '获取任务列表失败' }));
@@ -216,7 +252,7 @@ const api = {
      * @param {string} taskId 任务ID
      */
     async deleteBidProposalTask(taskId) {
-        const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
         const response = await fetch(`${baseUrl}/api/gender_book/tasks/${taskId}`, {
             method: 'DELETE',
         });
@@ -239,7 +275,7 @@ const api = {
             requestBody.model_name = modelName;
         }
         
-        const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
         const response = await fetch(`${baseUrl}/api/gender_book/analyze_json`, {
             method: 'POST',
             headers: {
@@ -258,7 +294,7 @@ const api = {
      * 检查投标书生成服务健康状态
      */
     async checkBidProposalHealth() {
-        const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
         const response = await fetch(`${baseUrl}/api/gender_book/health`);
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ detail: '健康检查失败' }));
@@ -271,7 +307,7 @@ const api = {
      * 获取标准章节模板
      */
     async getStandardSections() {
-        const baseUrl = window.API_BASE_URL || 'http://localhost:8000';
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
         const response = await fetch(`${baseUrl}/api/gender_book/sections`);
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ detail: '获取标准章节失败' }));

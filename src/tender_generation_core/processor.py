@@ -108,3 +108,52 @@ def process_document(filepath):
         
     print("6. 招标文件生成完毕！")
     return final_document
+
+def process_text_content(text_content, config):
+    """处理用户输入的文本内容生成招标书"""
+    print("1. 开始处理用户输入的文本内容...")
+    
+    if not text_content or len(text_content.strip()) < 10:
+        raise ValueError("文本内容不能为空且至少需要10个字符")
+    
+    # 获取项目名称
+    project_name = config.get('project_name', '招标项目')
+    
+    print("2. 开始文本分块...")
+    chunks = chunk_text(text_content)
+    
+    print(f"3. 开始对 {len(chunks)} 个文本块进行并行总结 (Map)...")
+    # 保持并行处理
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        chunk_summaries = list(executor.map(summarize_chunk, chunks))
+    
+    print("4. 开始整合所有总结 (Reduce)...")
+    overall_summary = reduce_summaries(chunk_summaries)
+    
+    print("5. 开始迭代生成招标书...")
+    tender_sections = [
+        "第一章 采购公告",
+        "第二章 供应商须知",
+        "第三章 评审办法",
+        "第四章 合同条款及格式",
+        "第五章 采购人要求",
+        "第六章 响应文件格式"
+    ]
+    
+    # 如果配置中指定了特定章节，则只生成指定章节
+    if config.get('include_sections'):
+        tender_sections = [section for section in tender_sections if section in config['include_sections']]
+    
+    final_document = f"# 招标书\n\n(基于用户输入文本生成 - 项目: {project_name})\n\n"
+    
+    # 如果有自定义要求，添加到文档开头
+    if config.get('custom_requirements'):
+        final_document += f"## 特殊要求\n\n{config['custom_requirements']}\n\n---\n\n"
+    
+    for section_title in tender_sections:
+        print(f"   - 正在生成: {section_title}")
+        section_content = generate_tender_section(overall_summary, section_title)
+        final_document += f"## {section_title}\n\n{section_content}\n\n---\n\n"
+        
+    print("6. 基于文本的招标文件生成完毕！")
+    return final_document
