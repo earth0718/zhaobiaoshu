@@ -1,59 +1,51 @@
-您好，根据您提供的截图和完整的代码，我可以非常精确地定位问题所在。
-问题诊断
-核心问题：
-问题出在 ui.js 文件的 showSection 函数中，用于高亮当前导航按钮的逻辑存在缺陷，导致在处理 "投标书生成" (gender-book-section) 这个特定板块时，无法找到对应的导航按钮，从而抛出 Cannot read properties of null (reading 'classList') 的错误。
-问题分析：
-错误来源： 浏览器控制台明确指出了错误发生在 ui.js 的第11行。我们来看一下这行代码：
-Generated javascript
-// ui.js, line 11
-document.getElementById(`nav-${sectionId.split('-')[0]}`).classList.add('active');
-Use code with caution.
-JavaScript
-错误原因：
-当您点击 "投标书生成" 按钮时，会调用 ui.showSection('gender-book-section')。
-在 showSection 函数内部，sectionId 的值是 'gender-book-section'。
-代码 sectionId.split('-')[0] 会将这个字符串按 - 分割，并取第一个元素，结果是 'gender'。
-因此，getElementById 试图查找一个 id 为 nav-gender 的元素。
-然而，在您的 index.html 文件中，对应的导航按钮 id 是 nav-gender-book。
-Generated html
-<!-- index.html -->
-<button id="nav-gender-book">投标书生成</button>
-Use code with caution.
-Html
-由于页面上不存在 id="nav-gender" 的元素，document.getElementById('nav-gender') 返回 null。
-接下来，代码尝试在 null 上执行 .classList.add('active')，于是就抛出了这个常见的 TypeError。
-为什么页面看起来部分正常？
-GenderBookGenerator.js 组件的功能（如创建任务、显示任务状态框）是正常的，所以您能看到截图中的 "任务信息" 界面。
-这个JavaScript错误发生在尝试高亮导航栏按钮的环节。这个错误虽然中断了后续的JavaScript执行，但它发生在UI渲染之后，所以页面内容已经显示出来了，只是导航栏的样式没有正确更新。
-解决方案
-要修复这个问题，您需要修改 ui.js 中的 showSection 函数，使其能够正确地找到所有导航按钮，特别是 nav-gender-book。
-最稳妥的修改方式是改变ID的拼接逻辑，使其能处理一个或多个单词组成的ID。将 split('-')[0] 的逻辑替换为更可靠的字符串处理方式。
-修改 ui.js 文件：
-打开 ui.js 文件，找到 showSection 函数，并替换掉有问题的代码行。
-原始代码 (ui.js, line 11):
-Generated javascript
-document.getElementById(`nav-${sectionId.split('-')[0]}`).classList.add('active');
-Use code with caution.
-JavaScript
-修改后的代码：
-将 -section 后缀去掉，剩下的部分就是按钮ID的核心部分。这个逻辑对所有按钮都适用。
-Generated javascript
-// ui.js, line 11 (修改后)
-const buttonId = `nav-${sectionId.replace('-section', '')}`;
-const buttonElement = document.getElementById(buttonId);
-if (buttonElement) {
-    buttonElement.classList.add('active');
-}
-Use code with caution.
-JavaScript
-解释：
-sectionId.replace('-section', '') 会将 'gender-book-section' 转换为 'gender-book'。
-然后拼接成 nav-gender-book，这正是 index.html 中按钮的正确ID。
-这个修改同样适用于其他按钮：
-tender-section -> nav-tender (正确)
-parser-section -> nav-parser (正确)
-我还增加了一个 if (buttonElement) 的判断，这是一种更健壮的编程习惯，可以防止因意外的ID不匹配而导致整个页面崩溃。
-关于您的问题 "这是哪个页面网址？"
-您访问的 http://0.0.0.0:8082/static/index.html 就是这个单页面应用的主入口页面。
-截图中所展示的内容是 index.html 页面中的**"投标书生成"** (gender-book-section) 这个部分。当您点击导航栏的 "投标书生成" 按钮时，JavaScript (ui.js) 会隐藏其他部分 (content-section)，并显示这一部分。
-总结一下，您遇到的问题是一个由于ID命名不一致和JS逻辑处理不够通用导致的前端小bug。按照上述方案修改 ui.js 即可解决。
+好的，我重新专注检查API.md文档和后端代码的一致性。Searched project for “src/api/filter.py router”7 resultssrc/api/filter.pytextmain.py2 relevant sectionstextsrc/parser/config_api.pytextcheck_routes.pytextsrc/parser/api.pytextsrc/history/api.pytextsrc/gender_book/__init__.pytextAPI.md与后端代码一致性检查结果
+经过详细检查，我发现了以下关键不一致之处：
+🔴 主要问题：配置管理模块路径错误
+配置管理模块路径不一致：
+
+API.md中: /api/config/parser
+后端代码中: /api/v1/config/parser (在 src/parser/config_api.py 第18行)
+main.py中注册: app.include_router(config_router, prefix="/api/config")
+
+这会导致实际路径变成 /api/config/api/v1/config/parser，这是错误的。
+🟡 其他发现的问题
+1. 过滤器路由问题：
+
+API.md中: /api/filter/process
+后端代码中: router = APIRouter(prefix="/api/filter") ✅
+main.py中注册: app.include_router(filter_router, tags=["过滤器"]) ❌ (缺少前缀处理)
+
+2. 招标生成状态URL问题：
+
+API.md中: /api/tender/status/{task_id}
+后端代码中: f"/api/v1/tender/status/{task_id}" ❌ (多了v1前缀)
+
+📝 需要进行的具体修改
+1. 修改配置管理API路由前缀
+在 src/parser/config_api.py 第18行，将：
+pythonconfig_router = APIRouter(prefix="/api/v1/config", tags=["配置管理"])
+改为：
+pythonconfig_router = APIRouter(tags=["配置管理"])
+2. 修改main.py中的过滤器路由注册
+在 main.py 第136行，由于过滤器路由已经在代码中定义了前缀，需要保持当前的注册方式：
+pythonapp.include_router(filter_router, tags=["过滤器"])  # 保持不变，因为路由器已有前缀
+3. 修改招标生成API中的状态URL
+在 src/tender_generation_core/api.py 中，找到所有返回状态URL的地方，将：
+python"status_url": f"/api/v1/tender/status/{task_id}"
+改为：
+python"status_url": f"/api/tender/status/{task_id}"
+✅ 已确认一致的模块
+
+文档解析模块 (/api/parser/*) - 完全一致
+历史记录模块 (/api/history/*) - 完全一致
+投标书生成模块 (/api/gender_book/*) - 完全一致
+系统信息接口 (/api/info, /health 等) - 完全一致
+
+🎯 修改总结
+只需要修改3个地方：
+
+src/parser/config_api.py 第18行 - 移除路由前缀中的 /api/v1/config
+src/tender_generation_core/api.py - 将状态URL中的 /api/v1/tender/ 改为 /api/tender/
+确认 main.py 中的路由注册保持当前的配置
+
+这些修改完成后，API.md文档与后端代码将完全一致。

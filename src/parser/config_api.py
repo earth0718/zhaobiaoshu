@@ -10,13 +10,12 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import logging
 
-from config.parser_config import parser_config
-
+from config.parser_config import parser_config 
 # 配置日志
 logger = logging.getLogger(__name__)
 
 # 创建路由器
-config_router = APIRouter(prefix="/api/v1/config", tags=["配置管理"])
+config_router = APIRouter(tags=["配置管理"])
 
 
 class ConfigUpdateRequest(BaseModel):

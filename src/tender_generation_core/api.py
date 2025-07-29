@@ -391,7 +391,7 @@ async def generate_tender_document(
         return {
             "task_id": task_id,
             "message": "任务已创建，正在处理中...",
-            "status_url": f"/api/v1/tender/status/{task_id}"
+            "status_url": f"/api/tender/status/{task_id}"
         }
         
     except HTTPException:
@@ -444,7 +444,7 @@ async def generate_tender_from_text(
         return {
             "task_id": task_id,
             "message": "文本招标文件生成任务已创建，正在处理中...",
-            "status_url": f"/api/v1/tender/status/{task_id}"
+            "status_url": f"/api/tender/status/{task_id}"
         }
         
     except HTTPException:

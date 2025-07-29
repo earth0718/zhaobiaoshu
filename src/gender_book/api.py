@@ -687,7 +687,7 @@ async def download_file(file_type: str, filename: str):
             raise HTTPException(status_code=400, detail="不支持的文件类型")
         
         # 构建文件路径
-        base_download_dir = r"d:\Pyhton-learn\new\study\zhaobiaoshu\download"
+        base_download_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "download")
         file_dir = os.path.join(base_download_dir, file_type)
         file_path = os.path.join(file_dir, filename)
         
