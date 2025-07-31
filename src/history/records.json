@@ -1,5 +1,37 @@
 [
   {
+    "record_id": "dde3e8a5-bb3f-4277-b8d0-2a8eb373bb74",
+    "task_id": "8807f96f-4d3f-4987-a6d2-bf3e9f856856",
+    "original_filename": "56815579-efce-45b8-9031-3d82ba2602c7.docx",
+    "file_size": 38252,
+    "model_provider": "siliconcloud",
+    "quality_level": "standard",
+    "generation_time": "2025-07-31T10:28:11.413699",
+    "processing_duration": 992.867697,
+    "status": "completed",
+    "error_message": null,
+    "tender_content": "",
+    "tender_summary": "# 招标书\n\n(基于文件 56815579-efce-45b8-9031-3d82ba2602c7.docx 生成)\n\n## 第一章 采购公告\n\n\n以下是根据项目需求撰写的**第一章 采购公告**专业文本，严格遵循《招标投标法实施条例》格式规范，突出关键条款和风险提示：\n\n---\n\n### **第一章 采购公告**  \n\n**武汉市光谷建设开发有限公司**（招标人）受权对 **武汉市光谷科创中心一...",
+    "created_at": "2025-07-31T10:28:11.413699",
+    "file_path": "src\\history\\content\\dde3e8a5-bb3f-4277-b8d0-2a8eb373bb74.txt"
+  },
+  {
+    "record_id": "238145bc-0a63-45e5-9b96-b855ebc23fc3",
+    "task_id": "0af4c46c-2aea-4e36-97d2-83484efb2f01",
+    "original_filename": "17d6eed3-9fad-432b-b84c-88987050d82a.docx",
+    "file_size": 51,
+    "model_provider": "siliconcloud",
+    "quality_level": "standard",
+    "generation_time": "2025-07-30T10:53:22.288758",
+    "processing_duration": 0.004336,
+    "status": "failed",
+    "error_message": "无法从文档中提取文本内容",
+    "tender_content": "",
+    "tender_summary": "",
+    "created_at": "2025-07-30T10:53:22.288758",
+    "file_path": "src\\history\\content\\238145bc-0a63-45e5-9b96-b855ebc23fc3.txt"
+  },
+  {
     "record_id": "ed6de625-e23b-4b4d-ae28-76b5230e869d",
     "task_id": "2a92027f-cd9c-44ef-b3d3-e678e07d96a7",
     "original_filename": "文本输入_招标项目",
