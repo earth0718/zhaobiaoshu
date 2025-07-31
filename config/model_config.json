@@ -23,12 +23,12 @@
       "model": "qwen2.5:7b"
     },
     "deepseek": {
-      "api_key": "sk-6e4ad3c342544b72b3f6720a7e283b68",
+      "api_key": "your-api",
       "base_url": "https://api.deepseek.com",
       "model": "deepseek-chat"
     },
     "siliconcloud": {
-      "api_key": "sk-bjvhihbzzkcdvrbgdmdoslerkwptshkprxnxfdhysrqilrhj",
+      "api_key": "your-api",
       "base_url": "https://api.siliconflow.cn/v1",
       "model": "deepseek-ai/DeepSeek-R1"
     }
