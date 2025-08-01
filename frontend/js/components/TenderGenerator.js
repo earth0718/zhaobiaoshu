@@ -20,8 +20,29 @@ class TenderGenerator {
                 
                 <!-- 文件上传区域 -->
                 <div id="file-upload-area" class="upload-area form-group">
-                    <label for="tender-file-input">选择文档文件 (PDF/DOCX):</label>
-                    <input type="file" id="tender-file-input" accept=".pdf,.docx">
+                    <div class="upload-mode-selector">
+                        <label><input type="radio" name="upload-mode" value="single" checked> 单文件上传</label>
+                        <label><input type="radio" name="upload-mode" value="multiple"> 多文件上传</label>
+                    </div>
+                    
+                    <div id="single-file-area">
+                        <label for="tender-file-input">选择文档文件 (PDF/DOCX):</label>
+                        <input type="file" id="tender-file-input" accept=".pdf,.docx">
+                    </div>
+                    
+                    <div id="multiple-file-area" style="display: none;">
+                        <label for="tender-multiple-files">选择多个文档文件 (PDF/DOCX):</label>
+                        <input type="file" id="tender-multiple-files" accept=".pdf,.docx" multiple>
+                        <div id="file-list" class="file-list"></div>
+                        
+                        <div class="multiple-options">
+                            <label for="tender-project-name-multi">项目名称:</label>
+                            <input type="text" id="tender-project-name-multi" placeholder="请输入项目名称" value="多文件招标项目">
+                            
+                            <label for="tender-custom-requirements-multi">特殊要求 (可选):</label>
+                            <textarea id="tender-custom-requirements-multi" rows="3" placeholder="请输入特殊要求或补充说明..."></textarea>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- 文本输入区域 -->
@@ -69,6 +90,16 @@ class TenderGenerator {
         modeRadios.forEach(radio => {
             radio.addEventListener('change', () => this.handleModeChange());
         });
+        
+        // 上传模式切换
+        const uploadModeRadios = this.element.querySelectorAll('input[name="upload-mode"]');
+        uploadModeRadios.forEach(radio => {
+            radio.addEventListener('change', () => this.handleUploadModeChange());
+        });
+        
+        // 多文件选择变化
+        const multipleFilesInput = this.element.querySelector('#tender-multiple-files');
+        multipleFilesInput.addEventListener('change', () => this.handleMultipleFilesChange());
     }
     
     handleModeChange() {
@@ -82,6 +113,48 @@ class TenderGenerator {
         } else {
             fileUploadArea.style.display = 'none';
             textInputArea.style.display = 'block';
+        }
+    }
+    
+    handleUploadModeChange() {
+        const selectedUploadMode = this.element.querySelector('input[name="upload-mode"]:checked').value;
+        const singleFileArea = this.element.querySelector('#single-file-area');
+        const multipleFileArea = this.element.querySelector('#multiple-file-area');
+        
+        if (selectedUploadMode === 'single') {
+            singleFileArea.style.display = 'block';
+            multipleFileArea.style.display = 'none';
+        } else {
+            singleFileArea.style.display = 'none';
+            multipleFileArea.style.display = 'block';
+        }
+    }
+    
+    handleMultipleFilesChange() {
+        const multipleFilesInput = this.element.querySelector('#tender-multiple-files');
+        const fileListDiv = this.element.querySelector('#file-list');
+        
+        fileListDiv.innerHTML = '';
+        
+        if (multipleFilesInput.files.length > 0) {
+            const fileList = document.createElement('ul');
+            fileList.className = 'selected-files';
+            
+            Array.from(multipleFilesInput.files).forEach((file, index) => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">(${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                `;
+                fileList.appendChild(listItem);
+            });
+            
+            fileListDiv.appendChild(fileList);
+            
+            const summary = document.createElement('p');
+            summary.className = 'file-summary';
+            summary.textContent = `已选择 ${multipleFilesInput.files.length} 个文件`;
+            fileListDiv.appendChild(summary);
         }
     }
 
@@ -102,23 +175,54 @@ class TenderGenerator {
             
             if (selectedMode === 'file') {
                 // 文件上传模式
-                const fileInput = this.element.querySelector('#tender-file-input');
+                const selectedUploadMode = this.element.querySelector('input[name="upload-mode"]:checked').value;
                 
-                if (fileInput.files.length === 0) {
-                    ui.showMessage(resultArea, '请先选择一个文件。', 'error');
-                    return;
+                if (selectedUploadMode === 'single') {
+                    // 单文件上传
+                    const fileInput = this.element.querySelector('#tender-file-input');
+                    
+                    if (fileInput.files.length === 0) {
+                        ui.showMessage(resultArea, '请先选择一个文件。', 'error');
+                        return;
+                    }
+
+                    const file = fileInput.files[0];
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const params = new URLSearchParams({
+                        model_provider: modelProvider,
+                        quality_level: qualityLevel
+                    });
+
+                    task = await api.generateTender(formData, params);
+                } else {
+                    // 多文件上传
+                    const multipleFilesInput = this.element.querySelector('#tender-multiple-files');
+                    const projectNameInput = this.element.querySelector('#tender-project-name-multi');
+                    const customRequirementsInput = this.element.querySelector('#tender-custom-requirements-multi');
+                    
+                    if (multipleFilesInput.files.length === 0) {
+                        ui.showMessage(resultArea, '请先选择至少一个文件。', 'error');
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    Array.from(multipleFilesInput.files).forEach(file => {
+                        formData.append('files', file);
+                    });
+                    
+                    formData.append('model_provider', modelProvider);
+                    formData.append('quality_level', qualityLevel);
+                    formData.append('project_name', projectNameInput.value.trim() || '多文件招标项目');
+                    
+                    const customRequirements = customRequirementsInput.value.trim();
+                    if (customRequirements) {
+                        formData.append('custom_requirements', customRequirements);
+                    }
+
+                    task = await api.generateMultipleTender(formData);
                 }
-
-                const file = fileInput.files[0];
-                const formData = new FormData();
-                formData.append('file', file);
-
-                const params = new URLSearchParams({
-                    model_provider: modelProvider,
-                    quality_level: qualityLevel
-                });
-
-                task = await api.generateTender(formData, params);
             } else {
                 // 文本输入模式
                 const textInput = this.element.querySelector('#tender-text-input');

@@ -84,6 +84,23 @@ const api = {
     },
 
     /**
+     * 多文件生成招标书
+     * @param {FormData} formData 包含多个文件和选项的表单数据
+     */
+    async generateMultipleTender(formData) {
+        const baseUrl = window.API_BASE_URL || 'http://localhost:8001';
+        const response = await fetch(`${baseUrl}/api/tender/generate_multiple`, {
+            method: 'POST',
+            body: formData,
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: '多文件招标文件生成任务创建失败' }));
+            throw new Error(errorData.detail);
+        }
+        return response.json();
+    },
+
+    /**
      * 查询任务状态
      * @param {string} taskId 任务ID
      */

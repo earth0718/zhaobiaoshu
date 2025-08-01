@@ -24,8 +24,13 @@ from docx.shared import Inches
 
 # 导入核心处理模块
 from .processor import process_document
+from .batch_processor import process_multiple_documents_async
 from ..llm_service.model_manager import model_manager
 from ..history.history_manager import history_manager
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from config.multi_file_settings import multi_file_config
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -53,6 +58,14 @@ class TextTenderGenerationRequest(BaseModel):
     include_sections: Optional[List[str]] = None
     custom_requirements: Optional[str] = None
 
+class MultipleTenderGenerationRequest(BaseModel):
+    """多文件招标文件生成请求模型"""
+    model_provider: Optional[str] = "ollama"
+    quality_level: Optional[str] = "standard"
+    project_name: Optional[str] = "招标项目"
+    include_sections: Optional[List[str]] = None
+    custom_requirements: Optional[str] = None
+
 class ModelConfigRequest(BaseModel):
     """模型配置请求模型"""
     module_name: str
@@ -71,9 +84,10 @@ class TaskStatusResponse(BaseModel):
 # 辅助函数
 def save_uploaded_file(upload_file: UploadFile, upload_dir: str = "upload") -> str:
     """保存上传的文件并返回文件路径"""
+    # 确保上传目录存在
     os.makedirs(upload_dir, exist_ok=True)
     
-    # 生成唯一文件名
+    # 生成唯一的文件名
     file_extension = os.path.splitext(upload_file.filename)[1]
     unique_filename = f"{uuid.uuid4()}{file_extension}"
     file_path = os.path.join(upload_dir, unique_filename)
@@ -84,6 +98,26 @@ def save_uploaded_file(upload_file: UploadFile, upload_dir: str = "upload") -> s
         buffer.write(content)
     
     return file_path
+
+def save_multiple_uploaded_files(upload_files: List[UploadFile], upload_dir: str = "upload") -> List[str]:
+    """保存多个上传的文件并返回文件路径列表"""
+    file_paths = []
+    
+    for upload_file in upload_files:
+        try:
+            file_path = save_uploaded_file(upload_file, upload_dir)
+            file_paths.append(file_path)
+        except Exception as e:
+            logger.error(f"保存文件 {upload_file.filename} 失败: {str(e)}")
+            # 清理已保存的文件
+            for saved_path in file_paths:
+                try:
+                    os.remove(saved_path)
+                except:
+                    pass
+            raise HTTPException(status_code=500, detail=f"保存文件失败: {str(e)}")
+    
+    return file_paths
 
 def update_task_status(task_id: str, status: str, progress: int = 0, message: str = "", result: Dict[str, Any] = None):
     """更新任务状态"""
@@ -221,6 +255,114 @@ async def process_document_async(task_id: str, file_path: str, config: Dict[str,
         # 清理临时文件
         if os.path.exists(file_path):
             os.remove(file_path)
+
+async def process_multiple_documents_async_task(task_id: str, file_paths: List[str], config: Dict[str, Any]):
+    """异步处理多个文档的后台任务"""
+    try:
+        update_task_status(task_id, "processing", 10, "开始处理多个文档...")
+        
+        # 定义进度回调函数
+        def progress_callback(progress: int, message: str):
+            if progress == -1:  # 错误情况
+                update_task_status(task_id, "failed", 0, message)
+            else:
+                # 将进度映射到10-90范围
+                mapped_progress = 10 + int(progress * 0.8)
+                update_task_status(task_id, "processing", mapped_progress, message)
+        
+        # 调用批量处理函数
+        result_content = await process_multiple_documents_async(
+            file_paths, config, progress_callback
+        )
+        
+        update_task_status(task_id, "processing", 90, "正在保存生成的招标文件...")
+        
+        # 生成文件名
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base_filename = f"tender_{timestamp}_{task_id[:8]}"
+        
+        # 保存为Markdown文件
+        markdown_dir = multi_file_config.get_markdown_output_dir()
+        os.makedirs(markdown_dir, exist_ok=True)
+        markdown_filename = f"{base_filename}.md"
+        markdown_path = os.path.join(markdown_dir, markdown_filename)
+        
+        with open(markdown_path, 'w', encoding='utf-8') as f:
+            f.write(result_content)
+        
+        # 保存为Word文档
+        word_dir = multi_file_config.get_word_output_dir()
+        os.makedirs(word_dir, exist_ok=True)
+        word_filename = f"{base_filename}.docx"
+        word_path = os.path.join(word_dir, word_filename)
+        
+        # 创建Word文档
+        doc = Document()
+        
+        # 解析Markdown内容并添加到Word文档
+        lines = result_content.split('\n')
+        for line in lines:
+            line = line.strip()
+            if line.startswith('# '):
+                # 一级标题
+                doc.add_heading(line[2:], level=1)
+            elif line.startswith('## '):
+                # 二级标题
+                doc.add_heading(line[3:], level=2)
+            elif line.startswith('### '):
+                # 三级标题
+                doc.add_heading(line[4:], level=3)
+            elif line == '---':
+                # 分隔线，跳过
+                continue
+            elif line:
+                # 普通段落
+                doc.add_paragraph(line)
+        
+        doc.save(word_path)
+        
+        # 记录成功历史
+        try:
+            file_names = [os.path.basename(fp) for fp in file_paths]
+            history_manager.save_success_record(
+                task_id=task_id,
+                file_paths=file_paths,
+                file_names=file_names,
+                markdown_path=markdown_path,
+                word_path=word_path,
+                config=config,
+                content_preview=result_content[:500] + "..." if len(result_content) > 500 else result_content
+            )
+        except Exception as history_error:
+            logger.warning(f"保存成功历史记录失败: {str(history_error)}")
+        
+        # 更新任务状态为完成
+        update_task_status(task_id, "completed", 100, "多文档招标文件生成完成！", {
+            "markdown_file": markdown_filename,
+            "word_file": word_filename,
+            "download_urls": {
+                "markdown": f"/api/tender/download/markdown/{markdown_filename}",
+                "word": f"/api/tender/download/word/{word_filename}"
+            },
+            "file_count": len(file_paths),
+            "source_files": [os.path.basename(fp) for fp in file_paths]
+        })
+        
+    except Exception as e:
+        logger.error(f"处理多个文档失败: {str(e)}", exc_info=True)
+        
+        # 记录失败历史
+        try:
+            history_manager.save_failed_record(
+                task_id=task_id,
+                file_path=",".join(file_paths),
+                error_message=str(e),
+                config=config
+            )
+        except Exception as history_error:
+            logger.warning(f"保存失败历史记录失败: {str(history_error)}")
+        
+        update_task_status(task_id, "failed", 0, f"处理失败: {str(e)}")
 
 async def process_text_content_async(task_id: str, text_content: str, config: Dict[str, Any]):
     """异步处理文本内容生成招标书"""
@@ -398,6 +540,106 @@ async def generate_tender_document(
         raise
     except Exception as e:
         logger.error(f"创建招标文件生成任务失败: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"创建任务失败: {str(e)}")
+
+@router.post("/generate_multiple", summary="多文件生成招标书", description="上传多个文档并合并生成一份完整招标书")
+async def generate_tender_from_multiple_documents(
+    background_tasks: BackgroundTasks,
+    files: List[UploadFile] = File(..., description="要处理的文档文件列表（支持PDF、DOCX格式）"),
+    model_provider: Optional[str] = None,
+    quality_level: Optional[str] = "standard",
+    project_name: Optional[str] = "招标项目",
+    custom_requirements: Optional[str] = None,
+    include_sections: Optional[str] = None
+):
+    """多文件生成招标书接口"""
+    try:
+        # 验证文件数量
+        if not files or len(files) == 0:
+            raise HTTPException(status_code=400, detail="至少需要上传一个文件")
+        
+        max_files = multi_file_config.get_max_files()
+        if len(files) > max_files:
+            raise HTTPException(status_code=400, detail=f"最多支持同时上传{max_files}个文件")
+        
+        # 验证文件格式和大小
+        max_file_size_mb = multi_file_config.get_max_file_size_mb()
+        max_file_size_bytes = max_file_size_mb * 1024 * 1024
+        
+        for file in files:
+            if not file.filename:
+                raise HTTPException(status_code=400, detail="文件名不能为空")
+            
+            # 验证文件格式
+            if not multi_file_config.validate_file_format(file.filename):
+                supported_formats = ", ".join(multi_file_config.get_supported_formats())
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"文件 {file.filename} 格式不支持，仅支持以下格式: {supported_formats}"
+                )
+            
+            # 验证文件大小（如果可以获取）
+            if hasattr(file, 'size') and file.size and file.size > max_file_size_bytes:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"文件 {file.filename} 大小超过限制（最大{max_file_size_mb}MB）"
+                )
+        
+        # 生成任务ID
+        task_id = str(uuid.uuid4())
+        
+        # 保存上传的文件
+        file_paths = save_multiple_uploaded_files(files)
+        
+        # 初始化任务状态
+        task_status[task_id] = {
+            "task_id": task_id,
+            "status": "pending",
+            "progress": 0,
+            "message": f"任务已创建，准备处理 {len(files)} 个文件...",
+            "result": None,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        # 配置参数
+        if model_provider is None:
+            model_provider = model_manager.get_current_model("tender_generation")
+        
+        config = {
+            "model_provider": model_provider,
+            "quality_level": quality_level,
+            "project_name": project_name or multi_file_config.get_default_project_name(),
+            "custom_requirements": custom_requirements
+        }
+        
+        # 处理include_sections参数
+        if include_sections:
+            try:
+                # 如果是字符串，尝试按逗号分割
+                if isinstance(include_sections, str):
+                    config["include_sections"] = [s.strip() for s in include_sections.split(",") if s.strip()]
+                else:
+                    config["include_sections"] = include_sections
+            except Exception:
+                # 如果解析失败，忽略该参数
+                pass
+        
+        # 添加后台任务
+        background_tasks.add_task(process_multiple_documents_async_task, task_id, file_paths, config)
+        
+        return {
+            "task_id": task_id,
+            "message": f"任务已创建，正在处理 {len(files)} 个文件...",
+            "file_count": len(files),
+            "file_names": [file.filename for file in files],
+            "status_url": f"/api/tender/status/{task_id}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"创建多文件招标文件生成任务失败: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"创建任务失败: {str(e)}")
 
 @router.post("/generate_from_text", summary="从文本生成招标书", description="根据用户输入的文本内容生成招标书")
