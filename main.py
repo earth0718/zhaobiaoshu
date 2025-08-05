@@ -103,7 +103,7 @@ app.include_router(config_router, prefix="/api/config", tags=["配置管理"])
 app.include_router(tender_router, prefix="/api/tender", tags=["招标文件生成"])
 app.include_router(history_router, prefix="/api/history", tags=["历史记录"])
 app.include_router(filter_router, tags=["过滤器"])
-app.include_router(gender_book_router, tags=["招标书生成"])
+app.include_router(gender_book_router, prefix="/api/gender_book", tags=["招标书生成"])
 
 # 挂载静态文件服务（前端界面）
 frontend_path = os.path.join(os.path.dirname(__file__), "frontend")

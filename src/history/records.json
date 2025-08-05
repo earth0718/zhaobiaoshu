@@ -1,5 +1,21 @@
 [
   {
+    "record_id": "6496291d-a6a0-4b89-a803-46f9c7a330ba",
+    "task_id": "e23222cb-7496-43d6-824e-81d335840454",
+    "original_filename": "95523c54-4de7-4ef1-8fb8-d22e3ec3cfc1.pdf",
+    "file_size": 137292,
+    "model_provider": "siliconcloud",
+    "quality_level": "premium",
+    "generation_time": "2025-08-05T09:58:24.894949",
+    "processing_duration": 1223.746029,
+    "status": "completed",
+    "error_message": null,
+    "tender_content": "",
+    "tender_summary": "# 招标书\n\n(基于文件 95523c54-4de7-4ef1-8fb8-d22e3ec3cfc1.pdf 生成)\n\n## 第一章 采购公告\n\n\n以下是严格按照政府采购公告规范撰写的 **第一章 采购公告** 内容，符合《中华人民共和国招标投标法》及专业招标文件格式要求：\n\n---\n\n### **第一章 采购公告**  \n\n**武汉市光谷建设开发有限公司  \n关于光谷科创中心一期工程预制构件供应项...",
+    "created_at": "2025-08-05T09:58:24.894949",
+    "file_path": "src\\history\\content\\6496291d-a6a0-4b89-a803-46f9c7a330ba.txt"
+  },
+  {
     "record_id": "dde3e8a5-bb3f-4277-b8d0-2a8eb373bb74",
     "task_id": "8807f96f-4d3f-4987-a6d2-bf3e9f856856",
     "original_filename": "56815579-efce-45b8-9031-3d82ba2602c7.docx",

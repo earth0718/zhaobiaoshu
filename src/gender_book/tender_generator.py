@@ -35,13 +35,15 @@ class BidProposalGenerator:
     
     def generate_bid_proposal(self, tender_document_json: Dict[str, Any], 
                                model_name: str = None,
-                               batch_size: int = None) -> Dict[str, Any]:
+                               batch_size: int = None,
+                               attachment_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """生成完整的投标书文档
         
         Args:
             tender_document_json: 招标文件JSON数据
             model_name: 指定使用的模型名称
             batch_size: 批处理大小，控制每次生成的章节数量
+            attachment_info: 附件信息，包含附件摘要等
             
         Returns:
             生成结果，包含完整投标书和生成统计信息
@@ -53,6 +55,14 @@ class BidProposalGenerator:
             # 1. 分析招标文件内容
             self.logger.info("步骤1: 分析招标文件内容")
             content_analysis = self.section_manager.analyze_json_content(tender_document_json)
+            
+            # 1.5. 如果有附件信息，将其添加到分析结果中
+            if attachment_info:
+                self.logger.info("整合附件信息到分析结果中...")
+                content_analysis["attachment_info"] = attachment_info
+                # 将附件摘要添加到内容中，供后续章节生成使用
+                if "summary" in attachment_info:
+                    content_analysis["content_summary"] = content_analysis.get("content_summary", "") + "\n\n附件信息摘要：\n" + attachment_info["summary"]
             
             # 2. 生成投标书章节计划
             self.logger.info("步骤2: 生成投标书章节计划")
@@ -66,13 +76,13 @@ class BidProposalGenerator:
             self.logger.info("步骤4: 分批生成投标书章节内容")
             batch_size = batch_size or section_plan.get("recommended_batch_size", 3)
             sections_content = self._generate_bid_sections_in_batches(
-                section_plan, content_analysis, project_understanding, batch_size
+                section_plan, content_analysis, project_understanding, batch_size, attachment_info
             )
             
             # 5. 组装最终投标书文档
             self.logger.info("步骤5: 组装最终投标书文档")
             final_document = self._assemble_final_bid_document(
-                project_understanding, sections_content, content_analysis
+                project_understanding, sections_content, content_analysis, attachment_info
             )
             
             # 6. 生成统计信息
@@ -100,7 +110,8 @@ class BidProposalGenerator:
                 "bid_proposal": final_document,
                 "statistics": statistics,
                 "section_plan": section_plan,
-                "content_analysis": content_analysis
+                "content_analysis": content_analysis,
+                "attachment_info": attachment_info
             }
             
         except Exception as e:
@@ -178,7 +189,8 @@ class BidProposalGenerator:
     def _generate_bid_sections_in_batches(self, section_plan: Dict[str, Any],
                                     content_analysis: Dict[str, Any],
                                     project_understanding: str,
-                                    batch_size: int) -> Dict[str, str]:
+                                    batch_size: int,
+                                    attachment_info: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
         """分批生成投标书章节内容"""
         sections_content = {}
         sections = section_plan["sections"]
@@ -193,7 +205,7 @@ class BidProposalGenerator:
                 section_id = section["id"]
                 try:
                     content = self._generate_single_bid_section(
-                        section_id, content_analysis, project_understanding, sections_content
+                        section_id, content_analysis, project_understanding, sections_content, attachment_info
                     )
                     sections_content[section_id] = content
                     self.logger.info(f"投标书章节 {section['title']} 生成完成")
@@ -206,7 +218,8 @@ class BidProposalGenerator:
     def _generate_single_bid_section(self, section_id: str, 
                                content_analysis: Dict[str, Any],
                                project_understanding: str,
-                               existing_sections: Dict[str, str]) -> str:
+                               existing_sections: Dict[str, str],
+                               attachment_info: Optional[Dict[str, Any]] = None) -> str:
         """生成单个投标书章节内容"""
         try:
             # 获取章节上下文
@@ -214,7 +227,7 @@ class BidProposalGenerator:
             
             # 构建投标书章节生成提示
             prompt = self._build_bid_section_prompt(
-                section_context, project_understanding, existing_sections
+                section_context, project_understanding, existing_sections, attachment_info
             )
             
             # 调用LLM生成投标书章节内容
@@ -228,7 +241,8 @@ class BidProposalGenerator:
     
     def _build_bid_section_prompt(self, section_context: Dict[str, Any],
                             project_understanding: str,
-                            existing_sections: Dict[str, str]) -> str:
+                            existing_sections: Dict[str, str],
+                            attachment_info: Optional[Dict[str, Any]] = None) -> str:
         """构建投标书章节生成提示"""
         section_info = section_context["section_info"]
         tender_requirements = section_context["tender_requirements"]
@@ -267,6 +281,14 @@ class BidProposalGenerator:
                     related_content = existing_sections[related_id][:300]  # 只取前300字符
                     prompt += f"- {related_content}...\n"
         
+        # 添加附件信息
+        if attachment_info:
+            prompt += "\n=== 附件信息 ===\n"
+            if "summary" in attachment_info:
+                prompt += f"附件摘要: {attachment_info['summary']}\n"
+            if "file_list" in attachment_info:
+                prompt += f"附件清单: {', '.join(attachment_info['file_list'])}\n"
+        
         prompt += """
 === 生成要求 ===
 1. 内容要专业、准确、符合投标文件规范
@@ -284,7 +306,8 @@ class BidProposalGenerator:
     
     def _assemble_final_bid_document(self, project_understanding: str,
                                sections_content: Dict[str, str],
-                               content_analysis: Dict[str, Any]) -> str:
+                               content_analysis: Dict[str, Any],
+                               attachment_info: Optional[Dict[str, Any]] = None) -> str:
         """组装最终的投标书文档"""
         try:
             tender_requirements = content_analysis.get("tender_requirements", {})
@@ -347,6 +370,22 @@ class BidProposalGenerator:
             # 添加文档尾部
             document_parts.append("## 附录")
             document_parts.append("")
+            
+            # 如果有附件信息，添加到附录中
+            if attachment_info:
+                if "file_list" in attachment_info:
+                    document_parts.append("### 附件清单")
+                    document_parts.append("")
+                    for file_name in attachment_info["file_list"]:
+                        document_parts.append(f"- {file_name}")
+                    document_parts.append("")
+                
+                if "summary" in attachment_info:
+                    document_parts.append("### 附件摘要")
+                    document_parts.append("")
+                    document_parts.append(attachment_info["summary"])
+                    document_parts.append("")
+            
             document_parts.append(f"本投标书由系统自动生成，生成时间：{datetime.now().strftime('%Y年%m月%d日 %H:%M:%S')}")
             document_parts.append("")
             

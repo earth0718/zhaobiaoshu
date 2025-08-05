@@ -30,7 +30,7 @@
     "siliconcloud": {
       "api_key": "sk-bjvhihbzzkcdvrbgdmdoslerkwptshkprxnxfdhysrqilrhj",
       "base_url": "https://api.siliconflow.cn/v1",
-      "model": "Qwen/Qwen3-8B"
+      "model": "deepseek-ai/DeepSeek-R1"
     }
   }
 }

@@ -1,0 +1,477 @@
+Parser模块 + 正则增强 = 完美契合投标书生成！我决定采用这个办法，现在我已经添加了src/gender_book/enhanced_attachment_processor.py这个文件，其余的都没有改动，你帮我看看我还需要改动什么地方？Edit很好的选择！现在让我帮你分析还需要改动哪些地方来完整集成这个方案。Searched project for “gender_book api generate_from_json 附件处理”4 resultssrc/gender_book/api.py3 relevant sectionstextapi_test.pytextAPI.md3 relevant sectionstextsrc/gender_book/__init__.pytext基于项目代码分析，你需要进行以下改动来完整集成 enhanced_attachment_processor.py：
+1. 修改API接口 - 支持附件上传
+在 src/gender_book/api.py 中添加新的接口
+python# 在 BidProposalGenerationRequest 类中添加附件支持
+class BidProposalGenerationRequestWithAttachments(BaseModel):
+    """带附件的投标书生成请求模型"""
+    tender_document_json: str  # 改为字符串，因为要通过Form传递
+    model_name: Optional[str] = None
+    batch_size: Optional[int] = None
+    generate_outline_only: Optional[bool] = False
+
+# 添加新的API接口
+@router.post("/generate_from_json_with_attachments", response_model=BidProposalGenerationResponse,
+            summary="从招标文件JSON生成投标书（支持附件）", 
+            description="上传招标文件JSON和附件，生成包含附件说明的完整投标书")
+async def generate_bid_proposal_with_attachments(
+    background_tasks: BackgroundTasks,
+    tender_document_json: str = Form(..., description="经过filter.py处理的招标文件JSON数据"),
+    model_name: Optional[str] = Form(None, description="指定使用的模型名称"),
+    batch_size: Optional[int] = Form(None, description="批处理大小"),
+    generate_outline_only: Optional[bool] = Form(False, description="是否只生成大纲"),
+    attachments: List[UploadFile] = File(None, description="附件文件列表（支持图片和PDF）")
+):
+    """从招标文件JSON数据和附件生成投标书"""
+    try:
+        logger.info("收到带附件的投标书生成请求")
+        
+        # 解析JSON数据
+        try:
+            json_data = json.loads(tender_document_json)
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"JSON数据格式错误: {str(e)}")
+        
+        # 验证JSON数据
+        if not json_data:
+            raise HTTPException(status_code=400, detail="招标文件JSON数据不能为空")
+        
+        if "content" not in json_data:
+            raise HTTPException(status_code=400, detail="招标文件JSON数据格式错误，缺少content字段")
+        
+        # 生成任务ID
+        task_id = str(uuid.uuid4())
+        
+        # 初始化任务状态
+        task_status[task_id] = {
+            "task_id": task_id,
+            "status": "pending",
+            "progress": 0,
+            "message": "任务已创建，等待处理...",
+            "result": None,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            "error": None
+        }
+        
+        # 添加后台任务（包含附件处理）
+        background_tasks.add_task(
+            process_bid_proposal_with_attachments_async,
+            task_id,
+            json_data,
+            attachments,
+            model_name,
+            batch_size,
+            generate_outline_only
+        )
+        
+        return BidProposalGenerationResponse(
+            success=True,
+            task_id=task_id,
+            message="投标书生成任务已创建（包含附件处理）",
+            data={"status_url": f"/api/gender_book/status/{task_id}"}
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"创建带附件的投标书生成任务失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"创建任务失败: {str(e)}")
+
+# 新的异步处理函数
+async def process_bid_proposal_with_attachments_async(
+    task_id: str, 
+    tender_document_json: Dict[str, Any], 
+    attachments: List[UploadFile],
+    model_name: str = None, 
+    batch_size: int = None,
+    generate_outline_only: bool = False
+):
+    """异步处理带附件的投标书生成"""
+    try:
+        update_task_status(task_id, "processing", 5, "开始处理附件...")
+        
+        # 导入附件处理器
+        from .enhanced_attachment_processor import EnhancedAttachmentProcessor
+        
+        # 处理附件
+        processed_attachments = None
+        if attachments and any(att.filename for att in attachments):
+            attachment_processor = EnhancedAttachmentProcessor()
+            processed_attachments = await attachment_processor.process_files(attachments)
+            update_task_status(task_id, "processing", 20, "附件处理完成，开始生成投标书...")
+        else:
+            update_task_status(task_id, "processing", 10, "无附件，开始分析招标文件内容...")
+        
+        # 初始化生成器
+        generator = BidProposalGenerator(model_name=model_name)
+        
+        # 生成投标书（传入附件信息）
+        result = generator.generate_bid_proposal(
+            tender_document_json,
+            model_name=model_name,
+            batch_size=batch_size,
+            attachments_info=processed_attachments  # 新增参数
+        )
+        
+        update_task_status(task_id, "processing", 90, "投标书生成完成，正在保存文件...")
+        
+        # 处理结果和文件保存（与原有逻辑相同）
+        if result.get("success"):
+            # ... 原有的文件保存逻辑 ...
+            update_task_status(task_id, "completed", 100, "投标书生成完成", formatted_result)
+        else:
+            # ... 原有的错误处理逻辑 ...
+            pass
+            
+    except Exception as e:
+        logger.error(f"处理带附件的投标书生成任务时出错: {str(e)}")
+        update_task_status(task_id, "failed", 0, "处理失败", None, str(e))
+2. 修改投标书生成器 - 支持附件信息
+在 src/gender_book/tender_generator.py 中修改
+python# 修改生成方法签名
+def generate_bid_proposal(self, tender_document_json: Dict[str, Any], 
+                           model_name: str = None,
+                           batch_size: int = None,
+                           attachments_info: Dict[str, Any] = None) -> Dict[str, Any]:  # 新增参数
+    """生成完整的投标书文档"""
+    try:
+        # ... 原有逻辑 ...
+        
+        # 4. 分批生成投标书章节内容（传递附件信息）
+        sections_content = self._generate_bid_sections_in_batches(
+            section_plan, content_analysis, project_understanding, batch_size, attachments_info
+        )
+        
+        # ... 其余逻辑保持不变 ...
+
+# 修改相关方法
+def _generate_bid_sections_in_batches(self, section_plan: Dict[str, Any],
+                                content_analysis: Dict[str, Any],
+                                project_understanding: str,
+                                batch_size: int,
+                                attachments_info: Dict[str, Any] = None) -> Dict[str, str]:
+    """分批生成投标书章节内容"""
+    sections_content = {}
+    sections = section_plan["sections"]
+    
+    for i in range(0, len(sections), batch_size):
+        batch = sections[i:i + batch_size]
+        
+        for section in batch:
+            section_id = section["id"]
+            try:
+                content = self._generate_single_bid_section(
+                    section_id, content_analysis, project_understanding, 
+                    sections_content, attachments_info  # 传递附件信息
+                )
+                sections_content[section_id] = content
+                self.logger.info(f"投标书章节 {section['title']} 生成完成")
+            except Exception as e:
+                self.logger.error(f"生成投标书章节 {section['title']} 时出错: {str(e)}")
+                sections_content[section_id] = f"章节生成失败: {str(e)}"
+    
+    return sections_content
+
+def _generate_single_bid_section(self, section_id: str, 
+                           content_analysis: Dict[str, Any],
+                           project_understanding: str,
+                           existing_sections: Dict[str, str],
+                           attachments_info: Dict[str, Any] = None) -> str:  # 新增参数
+    """生成单个投标书章节内容"""
+    try:
+        # 特殊处理附件章节
+        if section_id == "attachments" and attachments_info:
+            return self._generate_attachments_section_with_enhanced_parser(attachments_info)
+        
+        # 原有逻辑保持不变
+        section_context = self.section_manager.get_section_context(section_id, content_analysis)
+        prompt = self._build_bid_section_prompt(
+            section_context, project_understanding, existing_sections
+        )
+        section_content = self.llm_service.model_manager.call_model('tender_notice', prompt)
+        return section_content
+        
+    except Exception as e:
+        self.logger.error(f"生成投标书章节 {section_id} 时出错: {str(e)}")
+        raise
+
+def _generate_attachments_section_with_enhanced_parser(
+    self, attachments_info: Dict[str, Any]
+) -> str:
+    """基于Parser+正则的高质量附件章节生成"""
+    
+    prompt = f"""
+作为专业的投标文件撰写专家，请根据以下经过高精度OCR和智能解析的附件信息，生成投标书的附件说明章节：
+
+=== 附件清单与详细信息 ===
+"""
+    
+    for file_info in attachments_info['files']:
+        confidence = file_info.get('confidence', 0.0)
+        validation = file_info.get('validation', {})
+        
+        prompt += f"""
+【文件】：{file_info['filename']}
+【文档类型】：{file_info['document_type']}（识别置信度：{confidence:.1%}）
+【关键信息】：
+"""
+        
+        key_info = file_info.get('key_info', {})
+        for field, value in key_info.items():
+            prompt += f"  • {field}：{value}\n"
+        
+        if validation.get('is_complete'):
+            prompt += f"【信息完整性】：✓ 关键信息齐全（完整度：{validation.get('confidence_score', 0):.1%}）\n"
+        else:
+            missing = validation.get('missing_fields', [])
+            prompt += f"【信息完整性】：⚠ 缺少：{', '.join(missing)}\n"
+        
+        prompt += "\n"
+    
+    prompt += """
+=== 生成要求 ===
+1. 基于实际解析的证件信息，生成专业的附件说明
+2. 突出关键证件的有效性、合规性和权威性
+3. 对于高置信度识别的信息，体现其准确性
+4. 对于图像格式证件，说明"附件为高清扫描件，OCR识别准确"
+5. 针对识别不完整的信息，说明"详细信息见原件扫描图"
+6. 体现企业资质的完整性和投标资格的充分性
+7. 字数控制在400-600字，格式专业规范
+
+请生成专业的附件说明内容：
+"""
+    
+    return self.llm_service.model_manager.call_model('tender_notice', prompt)
+3. 修改附件处理器 - 添加缺失的方法
+在你的 src/gender_book/enhanced_attachment_processor.py 中添加
+pythonimport tempfile
+import aiofiles
+import logging
+
+logger = logging.getLogger(__name__)
+
+class EnhancedAttachmentProcessor:
+    # ... 你现有的代码 ...
+    
+    async def process_files(self, files: List[UploadFile]) -> Dict[str, Any]:
+        """处理上传的附件文件列表"""
+        processed_attachments = {
+            "files": [],
+            "summary": "",
+            "key_info": {}
+        }
+        
+        for file in files:
+            if not file.filename:
+                continue
+                
+            try:
+                # 保存临时文件
+                file_path = await self._save_uploaded_file(file)
+                
+                # 处理文件
+                result = await self.process_attachment_with_parser(file_path, file.filename)
+                processed_attachments["files"].append(result)
+                
+                # 收集关键信息
+                if result.get("key_info"):
+                    processed_attachments["key_info"].update(result["key_info"])
+                    
+            except Exception as e:
+                logger.error(f"处理附件 {file.filename} 失败: {str(e)}")
+                # 添加失败记录
+                processed_attachments["files"].append({
+                    "filename": file.filename,
+                    "error": str(e),
+                    "processing_failed": True
+                })
+        
+        # 生成附件摘要
+        processed_attachments["summary"] = self._generate_attachment_summary(
+            processed_attachments["files"]
+        )
+        
+        return processed_attachments
+    
+    async def _save_uploaded_file(self, file: UploadFile) -> str:
+        """保存上传的文件到临时目录"""
+        # 创建临时文件
+        suffix = os.path.splitext(file.filename)[1] if file.filename else '.tmp'
+        temp_fd, temp_path = tempfile.mkstemp(suffix=suffix)
+        
+        try:
+            # 异步读取和写入文件
+            content = await file.read()
+            with os.fdopen(temp_fd, 'wb') as tmp_file:
+                tmp_file.write(content)
+            
+            return temp_path
+        except Exception:
+            # 如果出错，清理临时文件
+            try:
+                os.unlink(temp_path)
+            except:
+                pass
+            raise
+    
+    def _generate_attachment_summary(self, files_info: List[Dict[str, Any]]) -> str:
+        """生成附件摘要"""
+        if not files_info:
+            return "未上传附件"
+        
+        summary_parts = []
+        success_count = 0
+        
+        for file_info in files_info:
+            if file_info.get("processing_failed"):
+                summary_parts.append(f"• {file_info['filename']} (处理失败)")
+            else:
+                doc_type = file_info.get('document_type', '未知类型')
+                confidence = file_info.get('confidence', 0.0)
+                summary_parts.append(f"• {file_info['filename']} ({doc_type}, 识别度: {confidence:.1%})")
+                success_count += 1
+        
+        summary = f"共上传 {len(files_info)} 个附件，成功处理 {success_count} 个：\n"
+        summary += "\n".join(summary_parts)
+        
+        return summary
+4. 修改前端界面 - 支持附件上传
+在 frontend/js/components/GenderBookGenerator.js 中添加
+javascript// 在render方法中添加附件上传区域
+render() {
+    this.element.innerHTML = `
+        <div class="gender-book-container">
+            <!-- 原有的JSON上传区域 -->
+            <div class="upload-area form-group">
+                <label for="gender-book-file-input">选择招标文件JSON:</label>
+                <input type="file" id="gender-book-file-input" accept=".json">
+                <small class="help-text">请上传经过filter处理的招标文件JSON</small>
+            </div>
+            
+            <!-- 新增：附件上传区域 -->
+            <div class="attachments-area form-group">
+                <label for="attachments-input">上传投标附件（可选）:</label>
+                <input type="file" id="attachments-input" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
+                <small class="help-text">支持营业执照、资质证书、财务报表等附件（图片或PDF格式）</small>
+                <div id="attachments-preview" class="attachments-preview"></div>
+            </div>
+            
+            <!-- 原有的其他配置选项 -->
+            <div class="form-group">
+                <label for="model-select">选择模型:</label>
+                <select id="model-select">
+                    <option value="ollama">Ollama</option>
+                    <option value="deepseek">DeepSeek</option>
+                    <option value="openai">OpenAI</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <button id="generate-submit-btn" class="btn-primary">生成投标书</button>
+            </div>
+            
+            <div id="gender-book-result" class="result-area"></div>
+        </div>
+    `;
+}
+
+// 修改事件监听
+attachEventListeners() {
+    const submitBtn = this.element.querySelector('#generate-submit-btn');
+    const attachmentsInput = this.element.querySelector('#attachments-input');
+    
+    submitBtn.addEventListener('click', () => this.handleGenerate());
+    attachmentsInput.addEventListener('change', () => this.handleAttachmentsChange());
+}
+
+// 新增：处理附件选择
+handleAttachmentsChange() {
+    const attachmentsInput = this.element.querySelector('#attachments-input');
+    const previewDiv = this.element.querySelector('#attachments-preview');
+    
+    if (attachmentsInput.files.length > 0) {
+        let previewHtml = '<h4>已选择的附件:</h4><ul>';
+        for (let file of attachmentsInput.files) {
+            previewHtml += `<li>${file.name} (${(file.size / 1024).toFixed(1)} KB)</li>`;
+        }
+        previewHtml += '</ul>';
+        previewDiv.innerHTML = previewHtml;
+    } else {
+        previewDiv.innerHTML = '';
+    }
+}
+
+// 修改生成处理方法
+async handleGenerate() {
+    const fileInput = this.element.querySelector('#gender-book-file-input');
+    const attachmentsInput = this.element.querySelector('#attachments-input');
+    const modelSelect = this.element.querySelector('#model-select');
+    const resultArea = this.element.querySelector('#gender-book-result');
+
+    if (fileInput.files.length === 0) {
+        ui.showMessage(resultArea, '请先选择一个JSON文件。', 'error');
+        return;
+    }
+
+    const jsonFile = fileInput.files[0];
+    const attachments = attachmentsInput.files;
+    const modelName = modelSelect.value;
+
+    ui.showMessage(resultArea, '正在生成投标书，请稍候...', 'info');
+
+    try {
+        // 准备FormData
+        const formData = new FormData();
+        
+        // 读取JSON文件内容
+        const jsonContent = await this.readFileAsText(jsonFile);
+        formData.append('tender_document_json', jsonContent);
+        formData.append('model_name', modelName);
+        
+        // 添加附件
+        for (let i = 0; i < attachments.length; i++) {
+            formData.append('attachments', attachments[i]);
+        }
+
+        // 调用新的API接口
+        const response = await fetch('/api/gender_book/generate_from_json_with_attachments', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            this.pollTaskStatus(result.task_id, resultArea);
+        } else {
+            ui.showMessage(resultArea, `生成失败: ${result.error || result.message}`, 'error');
+        }
+    } catch (error) {
+        ui.showMessage(resultArea, `请求失败: ${error.message}`, 'error');
+    }
+}
+5. 修改章节管理器 - 添加附件章节
+在 src/gender_book/section_manager.py 中确保包含附件章节
+pythondef get_standard_sections(self) -> List[BidSection]:
+    """获取标准的投标书章节列表"""
+    return [
+        # ... 其他章节 ...
+        BidSection(
+            id="attachments",
+            title="第六章 附件",
+            description="投标相关的证明文件和资质材料",
+            keywords=["附件", "证明文件", "营业执照", "资质证书", "财务报表"],
+            priority="high",
+            has_requirements=True,
+            estimated_length=500
+        )
+    ]
+总结需要修改的文件
+
+src/gender_book/api.py - 添加新的API接口支持附件上传
+src/gender_book/tender_generator.py - 修改生成器支持附件信息传递
+src/gender_book/enhanced_attachment_processor.py - 完善你已创建的处理器（添加缺失方法）
+frontend/js/components/GenderBookGenerator.js - 修改前端支持附件上传
+src/gender_book/section_manager.py - 确保包含附件章节定义
+
+这样修改后，你的系统就能完整支持附件上传和处理了！用户可以上传招标JSON文件和相关附件，系统会使用Parser模块进行高质量OCR识别，然后结合正则表达式提取关键信息，最终生成包含专业附件说明的完整投标书。

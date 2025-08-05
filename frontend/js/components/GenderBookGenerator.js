@@ -50,6 +50,13 @@ class GenderBookGenerator {
                     <small class="help-text">请上传招标文件解析后生成的JSON文件</small>
                 </div>
                 
+                <div class="attachment-upload-area form-group">
+                    <label for="gender-book-attachments-input">上传附件 (可选):</label>
+                    <input type="file" id="gender-book-attachments-input" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                    <small class="help-text">支持PDF、图片和Word文档，可选择多个文件</small>
+                    <div id="attachment-preview" class="attachment-preview"></div>
+                </div>
+                
                 <div class="generation-options form-group">
                     <h3>生成选项</h3>
                     <div class="options-grid">
@@ -102,9 +109,11 @@ class GenderBookGenerator {
     attachEventListeners() {
         const submitBtn = this.element.querySelector('#gender-book-submit-btn');
         const analyzeBtn = this.element.querySelector('#gender-book-analyze-btn');
+        const attachmentsInput = this.element.querySelector('#gender-book-attachments-input');
         
         submitBtn.addEventListener('click', () => this.handleGeneration());
         analyzeBtn.addEventListener('click', () => this.handleAnalysis());
+        attachmentsInput.addEventListener('change', () => this.handleAttachmentPreview());
         
         // 模型切换事件监听器
         this.element.querySelector('#gender-book-model-provider').addEventListener('change', (e) => {
@@ -120,6 +129,7 @@ class GenderBookGenerator {
 
     async handleGeneration() {
         const fileInput = this.element.querySelector('#gender-book-file-input');
+        const attachmentsInput = this.element.querySelector('#gender-book-attachments-input');
         const resultArea = this.element.querySelector('#gender-book-result');
         const modelProvider = this.element.querySelector('#gender-book-model-provider').value;
         const enableOptimization = this.element.querySelector('#enable-optimization').checked;
@@ -138,17 +148,38 @@ class GenderBookGenerator {
             return;
         }
 
-        ui.showMessage(resultArea, `已切换到${modelProvider === 'deepseek' ? 'DeepSeek云端模型' : 'Ollama本地模型'}，正在创建生成任务，请稍候...`, 'info');
+        // 检查是否有附件
+        const hasAttachments = attachmentsInput.files.length > 0;
+        const attachmentText = hasAttachments ? `（包含${attachmentsInput.files.length}个附件）` : '';
+        
+        ui.showMessage(resultArea, `已切换到${modelProvider === 'deepseek' ? 'DeepSeek云端模型' : 'Ollama本地模型'}，正在创建生成任务${attachmentText}，请稍候...`, 'info');
 
         try {
-            // 创建FormData对象
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('model_name', modelProvider);
-            formData.append('generate_outline_only', 'false');
-
-            // 调用后端API创建任务
-            const result = await api.generateBidProposalFromFile(formData);
+            let result;
+            
+            if (hasAttachments) {
+                // 如果有附件，使用新的API接口
+                const jsonContent = await this.readFileAsText(file);
+                const formData = new FormData();
+                formData.append('tender_document_json', jsonContent);
+                formData.append('model_name', modelProvider);
+                formData.append('generate_outline_only', 'false');
+                
+                // 添加所有附件
+                for (let i = 0; i < attachmentsInput.files.length; i++) {
+                    formData.append('attachments', attachmentsInput.files[i]);
+                }
+                
+                result = await api.generateBidProposalWithAttachments(formData);
+            } else {
+                // 没有附件，使用原有API接口
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('model_name', modelProvider);
+                formData.append('generate_outline_only', 'false');
+                
+                result = await api.generateBidProposalFromFile(formData);
+            }
             
             console.log('API返回结果:', result);
             
@@ -632,6 +663,33 @@ class GenderBookGenerator {
             console.error('下载文件失败:', error);
             alert('下载失败，请检查浏览器控制台获取更多信息。');
         }
+    }
+
+    handleAttachmentPreview() {
+        const attachmentsInput = this.element.querySelector('#gender-book-attachments-input');
+        const previewArea = this.element.querySelector('#attachment-preview');
+        
+        if (attachmentsInput.files.length === 0) {
+            previewArea.innerHTML = '';
+            return;
+        }
+        
+        const fileList = Array.from(attachmentsInput.files).map(file => {
+            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+            return `
+                <div class="attachment-item">
+                    <span class="attachment-name">${file.name}</span>
+                    <span class="attachment-size">(${fileSize} MB)</span>
+                </div>
+            `;
+        }).join('');
+        
+        previewArea.innerHTML = `
+            <div class="attachment-list">
+                <h5>已选择的附件 (${attachmentsInput.files.length}个):</h5>
+                ${fileList}
+            </div>
+        `;
     }
 }
 

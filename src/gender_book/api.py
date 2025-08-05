@@ -20,7 +20,7 @@ from .section_manager import SectionManager
 # 导入现有的LLM服务
 from src.llm_service import LLMService
 
-router = APIRouter(prefix="/api/gender_book", tags=["gender_book"])
+router = APIRouter(tags=["gender_book"])
 logger = logging.getLogger(__name__)
 
 # 任务状态存储
@@ -29,6 +29,13 @@ task_status = {}
 class BidProposalGenerationRequest(BaseModel):
     """投标书生成请求模型"""
     tender_document_json: Dict[str, Any]
+    model_name: Optional[str] = None
+    batch_size: Optional[int] = None
+    generate_outline_only: Optional[bool] = False
+
+class BidProposalGenerationRequestWithAttachments(BaseModel):
+    """带附件的投标书生成请求模型"""
+    tender_document_json: str  # 改为字符串，因为要通过Form传递
     model_name: Optional[str] = None
     batch_size: Optional[int] = None
     generate_outline_only: Optional[bool] = False
@@ -66,6 +73,142 @@ def update_task_status(task_id: str, status: str, progress: int, message: str, r
 
 async def process_bid_proposal_generation_async(task_id: str, tender_document_json: Dict[str, Any], 
                                         model_name: str = None, batch_size: int = None):
+    """异步处理带附件的投标书生成任务"""
+    try:
+        # 更新任务状态为处理中
+        update_task_status(task_id, "processing", 5, "开始处理附件...")
+        
+        # 处理附件
+        attachment_info = None
+        if attachments:
+            try:
+                from .enhanced_attachment_processor import EnhancedAttachmentProcessor
+                processor = EnhancedAttachmentProcessor()
+                
+                update_task_status(task_id, "processing", 10, "正在处理附件文件...")
+                
+                attachment_info = await processor.process_files(attachments)
+                
+                update_task_status(task_id, "processing", 20, "附件处理完成，开始生成投标书...")
+            except ImportError:
+                logger.warning("附件处理器不可用，跳过附件处理")
+                update_task_status(task_id, "processing", 20, "附件处理器不可用，开始生成投标书...")
+        else:
+            update_task_status(task_id, "processing", 20, "无附件，开始生成投标书...")
+        
+        # 初始化生成器
+        generator = BidProposalGenerator(model_name=model_name)
+        
+        update_task_status(task_id, "processing", 30, "正在生成投标书...")
+        
+        # 生成投标书（包含附件信息）
+        result = generator.generate_bid_proposal(
+            tender_document_json=tender_document_json,
+            model_name=model_name,
+            batch_size=batch_size,
+            attachment_info=attachment_info
+        )
+        
+        if result["success"]:
+            # 保存为多种格式的文档
+            try:
+                # 确保download目录及子目录存在
+                base_download_dir = r"d:\Pyhton-learn\new\study\zhaobiaoshu\download"
+                word_dir = os.path.join(base_download_dir, "word")
+                markdown_dir = os.path.join(base_download_dir, "markdown")
+                
+                os.makedirs(word_dir, exist_ok=True)
+                os.makedirs(markdown_dir, exist_ok=True)
+                
+                # 生成时间戳和基础文件名
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                base_filename = f"bid_proposal_with_attachments_{timestamp}"
+                
+                bid_content = result["bid_proposal"]
+                word_filepath = None
+                markdown_filepath = None
+                
+                # 1. 保存为Word文档
+                try:
+                    doc = Document()
+                    doc.add_heading('投标书（含附件）', 0)
+                    
+                    if isinstance(bid_content, str):
+                        # 按段落分割内容
+                        paragraphs = bid_content.split('\n\n')
+                        for paragraph in paragraphs:
+                            if paragraph.strip():
+                                doc.add_paragraph(paragraph.strip())
+                    elif isinstance(bid_content, dict):
+                        # 如果是字典格式，按章节添加
+                        for section_title, section_content in bid_content.items():
+                            doc.add_heading(section_title, level=1)
+                            if isinstance(section_content, str):
+                                doc.add_paragraph(section_content)
+                            elif isinstance(section_content, list):
+                                for item in section_content:
+                                    doc.add_paragraph(str(item))
+                    
+                    word_filename = f"{base_filename}.docx"
+                    word_filepath = os.path.join(word_dir, word_filename)
+                    doc.save(word_filepath)
+                    logger.info(f"投标书已保存为Word文档: {word_filepath}")
+                    
+                except Exception as e:
+                    logger.error(f"保存Word文档失败: {str(e)}")
+                
+                # 2. 保存为Markdown文档
+                try:
+                    markdown_filename = f"{base_filename}.md"
+                    markdown_filepath = os.path.join(markdown_dir, markdown_filename)
+                    
+                    # 将内容转换为Markdown格式
+                    markdown_content = _convert_to_markdown(bid_content)
+                    
+                    with open(markdown_filepath, 'w', encoding='utf-8') as f:
+                        f.write(markdown_content)
+                    
+                    logger.info(f"投标书已保存为Markdown文档: {markdown_filepath}")
+                    
+                except Exception as e:
+                    logger.error(f"保存Markdown文档失败: {str(e)}")
+                
+            except Exception as e:
+                logger.error(f"保存文档失败: {str(e)}")
+                word_filepath = None
+                markdown_filepath = None
+            
+            # 转换结果格式以匹配前端期望
+            formatted_result = {
+                "bid_content": result["bid_proposal"],
+                "sections_generated": result["statistics"].get("total_sections", 0),
+                "total_pages": max(1, len(str(result["bid_proposal"])) // 2000),  # 估算页数
+                "summary": f"投标书生成完成（含附件），共{result['statistics'].get('total_sections', 0)}个章节，耗时{result['statistics'].get('processing_duration', 0):.1f}秒",
+                "docx_content": result["bid_proposal"],  # 直接使用文本内容，前端会处理
+                "word_filename": os.path.basename(word_filepath) if word_filepath else None,  # 使用文件名替代完整路径
+                "markdown_filename": os.path.basename(markdown_filepath) if markdown_filepath else None,  # 使用文件名替代完整路径
+                "statistics": result["statistics"],
+                "section_plan": result.get("section_plan", {}),
+                "attachment_info": attachment_info
+            }
+            update_task_status(task_id, "completed", 100, "投标书生成完成（包含附件处理）", formatted_result)
+        else:
+            error_msg = "未知错误"
+            if isinstance(result, dict):
+                error_msg = result.get("error", "未知错误")
+            elif isinstance(result, str):
+                error_msg = result
+            update_task_status(task_id, "failed", 0, "投标书生成失败", None, error_msg)
+            
+    except Exception as e:
+        logger.error(f"处理带附件的投标书生成任务时出错: {str(e)}")
+        update_task_status(task_id, "failed", 0, "处理失败", None, str(e))
+
+async def process_bid_proposal_with_attachments_async(task_id: str, tender_document_json: Dict[str, Any],
+                                                    attachments: List[UploadFile],
+                                                    model_name: str = None, 
+                                                    batch_size: int = None,
+                                                    generate_outline_only: bool = False):
     """异步处理投标书生成"""
     try:
         update_task_status(task_id, "processing", 10, "开始分析招标文件内容...")
@@ -609,8 +752,75 @@ async def analyze_json_content(request: Dict[str, Any]):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"分析JSON内容失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"分析失败: {str(e)}")
+        logger.error(f"上传JSON文件并生成投标书失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}")
+
+@router.post("/generate_from_json_with_attachments", response_model=BidProposalGenerationResponse,
+            summary="从招标文件JSON生成投标书（支持附件）", 
+            description="上传招标文件JSON和附件，生成包含附件说明的完整投标书")
+async def generate_bid_proposal_with_attachments(
+    background_tasks: BackgroundTasks,
+    tender_document_json: str = Form(..., description="经过filter.py处理的招标文件JSON数据"),
+    model_name: Optional[str] = Form(None, description="指定使用的模型名称"),
+    batch_size: Optional[int] = Form(None, description="批处理大小"),
+    generate_outline_only: Optional[bool] = Form(False, description="是否只生成大纲"),
+    attachments: List[UploadFile] = File(None, description="附件文件列表（支持图片和PDF）")
+):
+    """从招标文件JSON数据和附件生成投标书"""
+    try:
+        logger.info("收到带附件的投标书生成请求")
+        
+        # 解析JSON数据
+        try:
+            json_data = json.loads(tender_document_json)
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"JSON数据格式错误: {str(e)}")
+        
+        # 验证JSON数据
+        if not json_data:
+            raise HTTPException(status_code=400, detail="招标文件JSON数据不能为空")
+        
+        if "content" not in json_data:
+            raise HTTPException(status_code=400, detail="招标文件JSON数据格式错误，缺少content字段")
+        
+        # 生成任务ID
+        task_id = str(uuid.uuid4())
+        
+        # 初始化任务状态
+        task_status[task_id] = {
+            "task_id": task_id,
+            "status": "pending",
+            "progress": 0,
+            "message": "任务已创建，等待处理...",
+            "result": None,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            "error": None
+        }
+        
+        # 添加后台任务（包含附件处理）
+        background_tasks.add_task(
+            process_bid_proposal_with_attachments_async,
+            task_id,
+            json_data,
+            attachments,
+            model_name,
+            batch_size,
+            generate_outline_only
+        )
+        
+        return BidProposalGenerationResponse(
+            success=True,
+            task_id=task_id,
+            message="投标书生成任务已创建（包含附件处理）",
+            data={"status_url": f"/api/gender_book/status/{task_id}"}
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"创建带附件的投标书生成任务失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"创建任务失败: {str(e)}")
 
 @router.get("/health", summary="健康检查", description="检查gender_book模块的健康状态")
 async def health_check():

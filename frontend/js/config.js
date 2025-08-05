@@ -8,7 +8,7 @@ class ConfigManager {
         this.config = null;
         this.defaultConfig = {
             api: {
-            base_url: 'http://localhost:8001',
+            base_url: 'http://localhost:8000',
                 timeout_ms: 60000,
                 retry_attempts: 3
             },
