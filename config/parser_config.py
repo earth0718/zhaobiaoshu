@@ -17,7 +17,13 @@ class ParserConfig:
         '.docx': 'docx', 
         '.doc': 'docx',
         '.txt': 'text',
-        '.md': 'text'
+        '.md': 'text',
+        # 添加图片格式支持
+        '.jpg': 'image',
+        '.jpeg': 'image', 
+        '.png': 'image',
+        '.tiff': 'image',
+        '.bmp': 'image'
     }
     
     # PDF分页处理配置
@@ -42,6 +48,12 @@ class ParserConfig:
         'text': {
             'include_page_breaks': False,
             'encoding': 'utf-8',  # 文本文件编码
+        },
+        # 添加图片处理策略
+        'image': {
+            'strategy': 'hi_res',  # 使用高精度OCR
+            'include_page_breaks': False,
+            'extract_images': True,
         }
     }
     

@@ -360,11 +360,12 @@ def _convert_to_markdown(bid_content):
 
 
 def _process_string_content(content):
-    """处理字符串格式的投标书内容"""
+    """处理字符串格式的投标书内容，优化标题处理"""
     import re
     
     result = ""
     paragraphs = content.split('\n\n')
+    seen_titles = set()
     
     for paragraph in paragraphs:
         if not paragraph.strip():
@@ -372,10 +373,10 @@ def _process_string_content(content):
             
         paragraph = paragraph.strip()
         
-        # 跳过重复的"投标书"标题
+        # 跳过重复的"投标书"标题和其他重复标题
         if paragraph in ["# 投标书", "投标书"] or paragraph.endswith(" 投标书"):
             continue
-            
+        
         # 处理已有的markdown标题
         if paragraph.startswith('#'):
             # 规范化标题格式
@@ -383,24 +384,44 @@ def _process_string_content(content):
             title_text = paragraph.lstrip('#').strip()
             
             if title_text:
-                # 确保不超过4级标题
-                title_level = min(title_level, 4)
-                # 一级标题改为二级（因为已有主标题）
-                if title_level == 1:
-                    title_level = 2
-                result += f"{'#' * title_level} {title_text}\n\n"
+                # 标准化标题
+                normalized_title = _normalize_title(title_text)
+                
+                # 跳过重复标题
+                if _is_duplicate_title(normalized_title, seen_titles):
+                    continue
+                
+                # 验证和调整标题层级
+                validated_level = _validate_title_level(normalized_title, title_level)
+                # 确保不超过4级标题，一级标题改为二级
+                if validated_level == 1:
+                    validated_level = 2
+                validated_level = min(validated_level, 4)
+                
+                seen_titles.add(normalized_title)
+                result += f"{'#' * validated_level} {normalized_title}\n\n"
         
         # 检测可能的章节标题
         elif _is_chapter_title(paragraph):
             title = _clean_title_text(paragraph)
             if title:
-                result += f"## {title}\n\n"
+                normalized_title = _normalize_title(title)
+                
+                # 跳过重复标题
+                if not _is_duplicate_title(normalized_title, seen_titles):
+                    seen_titles.add(normalized_title)
+                    result += f"## {normalized_title}\n\n"
         
         # 检测可能的子标题
         elif _is_sub_title(paragraph):
             title = _clean_title_text(paragraph)
             if title:
-                result += f"### {title}\n\n"
+                normalized_title = _normalize_title(title)
+                
+                # 跳过重复标题
+                if not _is_duplicate_title(normalized_title, seen_titles):
+                    seen_titles.add(normalized_title)
+                    result += f"### {normalized_title}\n\n"
         
         else:
             # 普通段落
@@ -468,24 +489,57 @@ def _format_section(title, content):
 
 
 def _is_chapter_title(text):
-    """判断是否为章节标题"""
+    """判断是否为章节标题，更精确的匹配"""
     import re
     
-    # 章节标题模式
+    text = text.strip()
+    
+    # 黑名单关键词 - 这些不应该被识别为章节标题
+    blacklist_keywords = [
+        '详见', '如下', '包括', '具体', '说明', '要求', '标准', '规范',
+        '附件', '附录', '备注', '注意', '提醒', '温馨提示'
+    ]
+    
+    # 检查黑名单
+    for keyword in blacklist_keywords:
+        if keyword in text:
+            return False
+    
+    # 长度检查 - 太短或太长的文本不太可能是标题
+    if len(text) < 2 or len(text) > 50:
+        return False
+    
+    # 章节标题模式（更严格）
     chapter_patterns = [
-        r'^第[一二三四五六七八九十\d]+章\s+.+',  # 第X章 标题
-        r'^[一二三四五六七八九十\d]+[、.]\s*.+',  # 一、标题 或 1. 标题
-        r'^\d+\.\d+\s+.+',  # 1.1 标题
-        r'.+[：:]$',  # 以冒号结尾
+        r'^第[一二三四五六七八九十\d]+章[\s：:].{2,30}$',  # 第X章 标题（限制长度）
+        r'^[一二三四五六七八九十]、.{2,30}$',  # 一、标题
+        r'^\d+[、.]\s*.{2,30}$',  # 1. 标题 或 1、标题
+        r'^\d+\.\d+[\s：:].{2,30}$',  # 1.1 标题
+        r'^.{2,20}[：:]$',  # 以冒号结尾的标题（限制长度）
     ]
     
     for pattern in chapter_patterns:
-        if re.match(pattern, text.strip()):
+        if re.match(pattern, text):
             return True
     
-    # 特定关键词
-    keywords = ['基本信息', '项目理解', '技术方案', '商务方案', '服务方案', '资格条件']
-    return any(keyword in text for keyword in keywords)
+    # 特定关键词（更精确匹配）
+    title_keywords = [
+        '基本信息', '项目理解', '技术方案', '商务方案', '服务方案', 
+        '资格条件', '项目管理', '质量保证', '进度安排', '人员配置',
+        '设备配置', '安全措施', '环保措施', '售后服务'
+    ]
+    
+    # 关键词匹配需要更严格的条件
+    for keyword in title_keywords:
+        if keyword in text:
+            # 确保关键词不是在句子中间
+            if text.startswith(keyword) or text.endswith(keyword):
+                return True
+            # 或者关键词前后有标点符号
+            if re.search(f'[^\\w]{keyword}[^\\w]', text):
+                return True
+    
+    return False
 
 
 def _is_sub_title(text):
@@ -522,19 +576,123 @@ def _clean_title_text(text):
     return text.strip()
 
 
-def _clean_markdown_format(content):
-    """清理markdown格式"""
+def _normalize_title(title):
+    """标准化标题格式"""
     import re
     
-    # 清理连续的空行，最多保留一个空行
-    content = re.sub(r'\n{3,}', '\n\n', content)
+    # 移除多余空白
+    title = re.sub(r'\s+', ' ', title.strip())
     
-    # 确保标题前后有适当的空行
-    content = re.sub(r'\n(#{1,6}\s+[^\n]+)\n', r'\n\n\1\n\n', content)
+    # 移除重复的标点符号
+    title = re.sub(r'[：:]{2,}', '：', title)
+    title = re.sub(r'[。.]{2,}', '。', title)
     
-    # 清理行尾空白
+    # 统一标点符号
+    title = title.replace(':', '：')
+    
+    return title
+
+
+def _is_duplicate_title(title, seen_titles):
+    """检查是否为重复标题"""
+    normalized = _normalize_title(title)
+    
+    # 检查完全相同的标题
+    if normalized in seen_titles:
+        return True
+    
+    # 检查相似标题（去除标点后比较）
+    import re
+    clean_title = re.sub(r'[^\w\s]', '', normalized)
+    for seen in seen_titles:
+        clean_seen = re.sub(r'[^\w\s]', '', seen)
+        if clean_title == clean_seen and clean_title:
+            return True
+    
+    return False
+
+
+def _validate_title_level(title, level):
+    """验证标题层级是否合理"""
+    import re
+    
+    # 一级标题关键词
+    level1_keywords = ['投标书', '技术方案', '商务方案', '项目管理方案', '售后服务方案']
+    
+    # 二级标题关键词
+    level2_keywords = ['基本信息', '项目理解', '资格条件', '技术要求', '服务承诺']
+    
+    # 检查是否包含章节标记
+    if re.search(r'第[一二三四五六七八九十\d]+章', title):
+        return min(level, 2)  # 章节标题最多为二级
+    
+    # 根据关键词调整级别
+    for keyword in level1_keywords:
+        if keyword in title:
+            return 2  # 主要章节为二级标题
+    
+    for keyword in level2_keywords:
+        if keyword in title:
+            return 3  # 子章节为三级标题
+    
+    # 限制最大层级
+    return min(level, 4)
+
+
+def _clean_markdown_format(content):
+    """清理markdown格式，消除标题重复和层级混乱"""
+    import re
+    
     lines = content.split('\n')
-    cleaned_lines = [line.rstrip() for line in lines]
+    cleaned_lines = []
+    seen_titles = set()
+    
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        
+        # 跳过空行
+        if not line:
+            # 避免连续空行
+            if cleaned_lines and cleaned_lines[-1] != '':
+                cleaned_lines.append('')
+            i += 1
+            continue
+        
+        # 处理markdown标题
+        title_match = re.match(r'^(#{1,6})\s+(.+)$', line)
+        if title_match:
+            level = len(title_match.group(1))
+            title_text = title_match.group(2).strip()
+            
+            # 标准化标题
+            normalized_title = _normalize_title(title_text)
+            
+            # 跳过重复标题
+            if _is_duplicate_title(normalized_title, seen_titles):
+                i += 1
+                continue
+            
+            # 验证和调整标题层级
+            validated_level = _validate_title_level(normalized_title, level)
+            
+            # 添加标题
+            if normalized_title:
+                seen_titles.add(normalized_title)
+                # 确保标题前有空行（除非是第一行）
+                if cleaned_lines and cleaned_lines[-1] != '':
+                    cleaned_lines.append('')
+                cleaned_lines.append(f"{'#' * validated_level} {normalized_title}")
+                cleaned_lines.append('')  # 标题后空行
+        else:
+            # 普通内容行
+            cleaned_lines.append(line)
+        
+        i += 1
+    
+    # 清理结尾多余空行
+    while cleaned_lines and cleaned_lines[-1] == '':
+        cleaned_lines.pop()
     
     return '\n'.join(cleaned_lines)
 

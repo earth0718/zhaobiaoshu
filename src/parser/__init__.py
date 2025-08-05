@@ -76,7 +76,12 @@ SUPPORTED_FORMATS = {
     '.docx': 'Word文档',
     '.doc': 'Word文档（旧版）',
     '.txt': '纯文本文件',
-    '.md': 'Markdown文件'
+    '.md': 'Markdown文件',
+    '.jpg': '图片文件',
+    '.jpeg': '图片文件',
+    '.png': '图片文件',
+    '.tiff': '图片文件',
+    '.bmp': '图片文件'
 }
 
 

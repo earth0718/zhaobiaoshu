@@ -1,56 +1,82 @@
-看了你的代码，发现还有一个关键问题：参数名不一致！
-发现的问题
-在两个函数中，你使用了不同的参数名：
-在 process_bid_proposal_generation_async 中：
-pythonresult = generator.generate_bid_proposal(
-    tender_document_json=tender_document_json,
-    model_name=model_name,
-    batch_size=batch_size,
-    attachment_info=attachment_info  # ← 使用的是 attachment_info
-)
-在 process_bid_proposal_with_attachments_async 中：
-pythonresult = generator.generate_bid_proposal(
-    tender_document_json=tender_document_json,
-    model_name=model_name,
-    batch_size=batch_size,
-    attachment_info=processed_attachments  # ← 也使用的是 attachment_info
-)
-但是在我们之前的讨论中，建议使用：
-pythonattachments_info=processed_attachments  # ← 应该是 attachments_info
-需要确认和修正
-你需要检查 src/gender_book/tender_generator.py 中的 generate_bid_proposal 方法的实际签名是什么：
-方案A：如果 tender_generator.py 中使用的是 attachment_info
-那么你的API代码是正确的，保持不变。
-方案B：如果 tender_generator.py 中使用的是 attachments_info
-你需要修改API代码：
-python# 在两个异步函数中都需要修改
-result = generator.generate_bid_proposal(
-    tender_document_json=tender_document_json,
-    model_name=model_name,
-    batch_size=batch_size,
-    attachments_info=processed_attachments  # ← 改为 attachments_info
-)
-如何确认
-请检查你的 src/gender_book/tender_generator.py 文件中的方法签名：
-pythondef generate_bid_proposal(self, tender_document_json: Dict[str, Any], 
-                           model_name: str = None,
-                           batch_size: int = None,
-                           ????=None) -> Dict[str, Any]:  # ← 这里的参数名是什么？
-测试建议
+方案1：修改配置文件支持图片格式（推荐）
+修改 config/parser_config.py：
+python# 支持的文件类型映射
+SUPPORTED_EXTENSIONS = {
+    '.pdf': 'pdf',
+    '.docx': 'docx', 
+    '.doc': 'docx',
+    '.txt': 'text',
+    '.md': 'text',
+    # 添加图片格式支持
+    '.jpg': 'image',
+    '.jpeg': 'image', 
+    '.png': 'image',
+    '.tiff': 'image',
+    '.bmp': 'image'
+}
+然后在 PARSER_STRATEGIES 中添加图片处理配置：
+pythonPARSER_STRATEGIES = {
+    'pdf': {
+        'strategy': 'auto',
+        'include_page_breaks': True,
+        'infer_table_structure': True,
+        'extract_images': False,
+    },
+    'docx': {
+        'include_page_breaks': True,
+        'infer_table_structure': True,
+        'extract_images': False,
+    },
+    'text': {
+        'include_page_breaks': False,
+        'encoding': 'utf-8',
+    },
+    # 添加图片处理策略
+    'image': {
+        'strategy': 'hi_res',  # 使用高精度OCR
+        'include_page_breaks': False,
+        'extract_images': True,
+    }
+}
+方案2：在DocumentParser中添加图片处理逻辑
+修改 src/parser/document_parser.py 的 parse_document 方法：
+pythondef parse_document(self, file_path: Union[str, Path]) -> List[Element]:
+    """解析文档"""
+    # ... 现有代码 ...
+    
+    try:
+        logger.info(f"开始解析文档: {file_path}")
+        
+        # 根据文件类型选择解析方法
+        if file_type == 'pdf':
+            elements = self._parse_pdf_by_pages(file_path)
+        elif file_type == 'docx':
+            elements = partition_docx(filename=str(file_path), **config)
+        elif file_type == 'text':
+            elements = partition_text(filename=str(file_path), **config)
+        elif file_type == 'image':
+            # 添加图片处理
+            from unstructured.partition.image import partition_image
+            elements = partition_image(
+                filename=str(file_path),
+                strategy="hi_res",  # 使用高精度OCR
+                **config
+            )
+        else:
+            # 使用自动检测
+            elements = partition(filename=str(file_path))
+推荐做法
+建议使用方案1，直接修改配置文件：
 
-先测试无附件的接口：/generate_from_json
-再测试带附件的接口：/generate_from_json_with_attachments
-检查日志：看看是否有参数错误或导入错误
+修改 config/parser_config.py - 添加图片格式支持
+重启服务 - 让配置生效
+测试图片处理 - 上传图片文件验证
 
-其他检查点
-还需要确认：
+这样修改后：
 
-enhanced_attachment_processor.py 文件是否完整
-是否缺少必要的依赖包（如果使用了Parser模块）
-tender_generator.py 是否已经更新为支持附件参数
+✅ unstructured库会自动进行OCR文字识别
+✅ 图片中的文字内容会被提取出来
+✅ 您的投标书生成就能包含图片信息了
+✅ 不需要修改其他代码
 
-总的来说，你的API代码逻辑是正确的，主要就是参数名需要与 tender_generator.py 中的保持一致！
-请确认参数名后，如果还有问题，可以分享一下：
-
-tender_generator.py 中 generate_bid_proposal 方法的签名
-运行时的错误日志
+总结：问题出在您的Parser配置不支持图片格式，而不是unstructured库的限制。修改配置文件就能解决！

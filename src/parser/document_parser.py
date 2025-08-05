@@ -126,6 +126,14 @@ class DocumentParser:
                     filename=str(file_path),
                     **config
                 )
+            elif file_type == 'image':
+                # 添加图片处理
+                from unstructured.partition.image import partition_image
+                elements = partition_image(
+                    filename=str(file_path),
+                    strategy="hi_res",  # 使用高精度OCR
+                    **config
+                )
             else:
                 # 使用自动检测
                 elements = partition(

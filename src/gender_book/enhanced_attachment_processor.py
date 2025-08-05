@@ -87,9 +87,7 @@ class EnhancedAttachmentProcessor:
             # 调用Parser服务进行结构化解析
             parse_result = self.document_service.parse_uploaded_file(
                 file_content, 
-                filename,
-                strategy="hi_res",  # 使用高精度OCR
-                include_metadata=True
+                filename
             )
             
             if not parse_result['success']:
@@ -111,10 +109,11 @@ class EnhancedAttachmentProcessor:
             # 6. 处理原始图像数据（如果是图像文件）
             image_data = None
             if filename.lower().endswith(('.jpg', '.jpeg', '.png', '.tiff', '.bmp')):
-                with open(file_path, 'rb') as f:
-                    image_data = f.read()
+                # 在文件被删除前读取图像数据
+                image_data = file_content  # 直接使用已读取的文件内容
             
-            return {
+            # 构建返回结果
+            result = {
                 "filename": filename,
                 "file_path": file_path,
                 "type": "document",
@@ -128,16 +127,24 @@ class EnhancedAttachmentProcessor:
                 "processing_method": "unstructured_parser_hi_res"
             }
             
-        except Exception as e:
-            logger.error(f"使用Parser处理文档失败 {filename}: {str(e)}")
-            raise
-        finally:
             # 清理临时文件
             try:
                 if os.path.exists(file_path):
                     os.unlink(file_path)
             except Exception as e:
                 logger.warning(f"清理临时文件失败: {str(e)}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"使用Parser处理文档失败 {filename}: {str(e)}")
+            # 确保在异常情况下也清理临时文件
+            try:
+                if os.path.exists(file_path):
+                    os.unlink(file_path)
+            except Exception as cleanup_e:
+                logger.warning(f"异常清理临时文件失败: {str(cleanup_e)}")
+            raise
     
     async def process_files(self, files: List[UploadFile]) -> Dict[str, Any]:
         """处理上传的附件文件列表"""
