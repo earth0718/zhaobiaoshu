@@ -73,28 +73,13 @@ def update_task_status(task_id: str, status: str, progress: int, message: str, r
 
 async def process_bid_proposal_generation_async(task_id: str, tender_document_json: Dict[str, Any], 
                                         model_name: str = None, batch_size: int = None):
-    """异步处理带附件的投标书生成任务"""
+    """异步处理投标书生成任务（不含附件）"""
     try:
         # 更新任务状态为处理中
-        update_task_status(task_id, "processing", 5, "开始处理附件...")
+        update_task_status(task_id, "processing", 20, "开始生成投标书...")
         
-        # 处理附件
+        # 不处理附件，直接生成投标书
         attachment_info = None
-        if attachments:
-            try:
-                from .enhanced_attachment_processor import EnhancedAttachmentProcessor
-                processor = EnhancedAttachmentProcessor()
-                
-                update_task_status(task_id, "processing", 10, "正在处理附件文件...")
-                
-                attachment_info = await processor.process_files(attachments)
-                
-                update_task_status(task_id, "processing", 20, "附件处理完成，开始生成投标书...")
-            except ImportError:
-                logger.warning("附件处理器不可用，跳过附件处理")
-                update_task_status(task_id, "processing", 20, "附件处理器不可用，开始生成投标书...")
-        else:
-            update_task_status(task_id, "processing", 20, "无附件，开始生成投标书...")
         
         # 初始化生成器
         generator = BidProposalGenerator(model_name=model_name)
@@ -122,7 +107,7 @@ async def process_bid_proposal_generation_async(task_id: str, tender_document_js
                 
                 # 生成时间戳和基础文件名
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                base_filename = f"bid_proposal_with_attachments_{timestamp}"
+                base_filename = f"bid_proposal_{timestamp}"
                 
                 bid_content = result["bid_proposal"]
                 word_filepath = None
@@ -131,7 +116,7 @@ async def process_bid_proposal_generation_async(task_id: str, tender_document_js
                 # 1. 保存为Word文档
                 try:
                     doc = Document()
-                    doc.add_heading('投标书（含附件）', 0)
+                    doc.add_heading('投标书', 0)
                     
                     if isinstance(bid_content, str):
                         # 按段落分割内容
@@ -183,15 +168,14 @@ async def process_bid_proposal_generation_async(task_id: str, tender_document_js
                 "bid_content": result["bid_proposal"],
                 "sections_generated": result["statistics"].get("total_sections", 0),
                 "total_pages": max(1, len(str(result["bid_proposal"])) // 2000),  # 估算页数
-                "summary": f"投标书生成完成（含附件），共{result['statistics'].get('total_sections', 0)}个章节，耗时{result['statistics'].get('processing_duration', 0):.1f}秒",
+                "summary": f"投标书生成完成，共{result['statistics'].get('total_sections', 0)}个章节，耗时{result['statistics'].get('processing_duration', 0):.1f}秒",
                 "docx_content": result["bid_proposal"],  # 直接使用文本内容，前端会处理
                 "word_filename": os.path.basename(word_filepath) if word_filepath else None,  # 使用文件名替代完整路径
                 "markdown_filename": os.path.basename(markdown_filepath) if markdown_filepath else None,  # 使用文件名替代完整路径
                 "statistics": result["statistics"],
-                "section_plan": result.get("section_plan", {}),
-                "attachment_info": attachment_info
+                "section_plan": result.get("section_plan", {})
             }
-            update_task_status(task_id, "completed", 100, "投标书生成完成（包含附件处理）", formatted_result)
+            update_task_status(task_id, "completed", 100, "投标书生成完成", formatted_result)
         else:
             error_msg = "未知错误"
             if isinstance(result, dict):
@@ -209,20 +193,36 @@ async def process_bid_proposal_with_attachments_async(task_id: str, tender_docum
                                                     model_name: str = None, 
                                                     batch_size: int = None,
                                                     generate_outline_only: bool = False):
-    """异步处理投标书生成"""
+    """异步处理带附件的投标书生成"""
     try:
-        update_task_status(task_id, "processing", 10, "开始分析招标文件内容...")
+        update_task_status(task_id, "processing", 5, "开始处理附件...")
+        
+        # ✅ 处理附件
+        processed_attachments = None
+        if attachments and any(att.filename for att in attachments):
+            try:
+                from .enhanced_attachment_processor import EnhancedAttachmentProcessor
+                attachment_processor = EnhancedAttachmentProcessor()
+                processed_attachments = await attachment_processor.process_files(attachments)
+                update_task_status(task_id, "processing", 20, "附件处理完成，开始生成投标书...")
+                logger.info(f"成功处理 {len(processed_attachments.get('files', []))} 个附件")
+            except Exception as e:
+                logger.error(f"处理附件失败: {str(e)}")
+                update_task_status(task_id, "processing", 15, f"附件处理失败: {str(e)}，继续生成投标书...")
+        else:
+            update_task_status(task_id, "processing", 10, "无附件，开始生成投标书...")
         
         # 初始化生成器
         generator = BidProposalGenerator(model_name=model_name)
         
         update_task_status(task_id, "processing", 30, "正在生成投标书...")
         
-        # 生成投标书
+        # ✅ 传入附件信息
         result = generator.generate_bid_proposal(
             tender_document_json=tender_document_json,
             model_name=model_name,
-            batch_size=batch_size
+            batch_size=batch_size,
+            attachment_info=processed_attachments  # ← 重要：传入附件信息
         )
         
         if result["success"]:
